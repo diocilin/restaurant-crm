@@ -19,8 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制后端代码
-COPY backend/ ./backend/
+# 复制后端代码（项目根目录结构，无 backend/ 子目录）
 COPY config/ ./config/
 COPY common/ ./common/
 COPY customers/ ./customers/
