@@ -1,0 +1,99 @@
+{% extends "admin/change_form.html" %}
+{% block extrahead %}{{ block.super }}
+<script>
+django.jQuery(function($) {
+    // 获取字段元素
+    const storeField = $('#id_store');
+    const dateField = $('#id_reservation_date');
+    const timeField = $('#id_reservation_time');
+    const seatTypeField = $('#id_seat_type');
+    const hallField = $('#id_hall_table');
+    const roomField = $('#id_room_choice');
+
+    // 座位类型切换时显示/隐藏对应字段
+    function toggleSeatFields() {
+        const seatType = seatTypeField.val();
+        if (seatType === 'hall') {
+            hallField.closest('.form-row').show();
+            roomField.closest('.form-row').show();
+            hallField.prop('required', true);
+            roomField.prop('required', false);
+        } else if (seatType === 'room') {
+            hallField.closest('.form-row').show();
+            roomField.closest('.form-row').show();
+            hallField.prop('required', false);
+            roomField.prop('required', true);
+        } else {
+            hallField.closest('.form-row').hide();
+            roomField.closest('.form-row').hide();
+            hallField.prop('required', false);
+            roomField.prop('required', false);
+        }
+    }
+
+    // 加载可用座位
+    function loadSeats() {
+        const storeId = storeField.val();
+        const date = dateField.val();
+        const time = timeField.val();
+        const seatType = seatTypeField.val();
+
+        if (!storeId || !date || !time || !seatType) {
+            toggleSeatFields();
+            return;
+        }
+
+        // 调用 available_seats API
+        const url = `/api/reservations/list/available_seats/?store=${storeId}&date=${date}&time=${time}`;
+
+        $.getJSON(url, function(data) {
+            if (seatType === 'hall') {
+                // 大堂桌号
+                let options = '<option value="">---------</option>';
+                if (data.hall) {
+                    data.hall.available.forEach(function(seat) {
+                        options += `<option value="${seat.number}">${seat.number}号（可用）</option>`;
+                    });
+                    data.hall.occupied.forEach(function(seat) {
+                        options += `<option value="${seat.number}" disabled>${seat.number}号（已占用）</option>`;
+                    });
+                }
+                hallField.html(options);
+            } else if (seatType === 'room') {
+                // 包间
+                let options = '<option value="">---------</option>';
+                if (data.rooms) {
+                    data.rooms.available.forEach(function(room) {
+                        options += `<option value="${room.id}">${room.name}（${room.capacity}人·可用）</option>`;
+                    });
+                    data.rooms.occupied.forEach(function(room) {
+                        options += `<option value="${room.id}" disabled>${room.name}（${room.capacity}人·已占用）</option>`;
+                    });
+                }
+                roomField.html(options);
+            }
+            toggleSeatFields();
+        }).fail(function() {
+            toggleSeatFields();
+        });
+    }
+
+    // 绑定事件
+    seatTypeField.on('change', function() {
+        toggleSeatFields();
+        loadSeats();
+    });
+    storeField.on('change', loadSeats);
+    dateField.on('change', loadSeats);
+    timeField.on('change', loadSeats);
+
+    // 初始化
+    toggleSeatFields();
+
+    // 如果是编辑模式且有值，加载座位
+    if (storeField.val() && dateField.val() && timeField.val() && seatTypeField.val()) {
+        loadSeats();
+    }
+});
+</script>
+{% endblock %}
