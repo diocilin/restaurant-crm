@@ -13,44 +13,45 @@
           </el-select>
         </el-form-item>
         <el-form-item label="门店" prop="store">
-          <el-select v-model="form.store" placeholder="选择门店" style="width: 100%;" @change="onStoreOrDateChange">
+          <el-select v-model="form.store" placeholder="选择门店" style="width: 100%;" @change="loadSeats">
             <el-option v-for="s in stores" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="预订日期" prop="reservation_date">
           <el-date-picker v-model="form.reservation_date" type="date" value-format="YYYY-MM-DD"
-            placeholder="请选择预订日期" style="width: 100%;" @change="onStoreOrDateChange" />
+            placeholder="请选择预订日期" style="width: 100%;" @change="loadSeats" />
         </el-form-item>
         <el-form-item label="预订时间" prop="reservation_time">
-          <el-time-picker v-model="form.reservation_time" value-format="HH:mm:ss" style="width: 100%;" />
+          <el-time-picker v-model="form.reservation_time" value-format="HH:mm:ss"
+            placeholder="请选择预订时间" style="width: 100%;" @change="loadSeats" />
         </el-form-item>
         <el-form-item label="预订人数">
           <el-input-number v-model="form.party_size" :min="1" :max="50" />
         </el-form-item>
 
-        <!-- 座位类型选择 -->
+        <!-- 座位类型（复选框，可同时选大厅和包间） -->
         <el-form-item label="座位类型">
-          <el-radio-group v-model="form.seat_type" @change="onSeatTypeChange">
-            <el-radio-button value="hall">大堂</el-radio-button>
-            <el-radio-button value="room">包间</el-radio-button>
-          </el-radio-group>
+          <el-checkbox-group v-model="selectedSeatTypes" @change="onSeatTypeChange">
+            <el-checkbox label="hall">大堂</el-checkbox>
+            <el-checkbox label="room">包间</el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
 
-        <!-- 未选门店或日期时的提示 -->
-        <el-form-item v-if="form.seat_type && (!form.store || !form.reservation_date)">
+        <!-- 未选门店/日期/时间时的提示 -->
+        <el-form-item v-if="selectedSeatTypes.length > 0 && (!form.store || !form.reservation_date || !form.reservation_time)">
           <div class="seat-hint">
             <el-icon><InfoFilled /></el-icon>
-            请先选择门店和预订日期，以查看可用座位
+            请先选择门店、预订日期和预订时间，以查看可用座位
           </div>
         </el-form-item>
 
         <!-- 加载中 -->
-        <el-form-item v-if="form.seat_type && form.store && form.reservation_date && seatsLoading">
+        <el-form-item v-if="selectedSeatTypes.length > 0 && form.store && form.reservation_date && form.reservation_time && seatsLoading">
           <div class="seat-hint">加载座位信息中...</div>
         </el-form-item>
 
         <!-- 大堂座位选择（多选） -->
-        <el-form-item label="大堂桌号" v-if="form.seat_type === 'hall' && seatData && !seatsLoading">
+        <el-form-item label="大堂桌号" v-if="showHall && seatData && !seatsLoading">
           <div v-if="hallSeats.length === 0 && hallOccupied.length === 0" class="seat-empty">
             暂无大堂座位信息
           </div>
@@ -82,7 +83,7 @@
         </el-form-item>
 
         <!-- 包间选择（多选） -->
-        <el-form-item label="包间" v-if="form.seat_type === 'room' && seatData && !seatsLoading">
+        <el-form-item label="包间" v-if="showRoom && seatData && !seatsLoading">
           <div v-if="roomSeats.length === 0 && roomOccupied.length === 0" class="seat-empty">
             暂无包间信息
           </div>
@@ -115,6 +116,14 @@
           </div>
         </el-form-item>
 
+        <!-- 翻台提示 -->
+        <el-form-item v-if="seatData && !seatsLoading">
+          <div class="seat-turnover-hint">
+            <el-icon><InfoFilled /></el-icon>
+            座位锁定时段：预订时间前1小时至后2小时，超出时段可翻台预订
+          </div>
+        </el-form-item>
+
         <el-form-item label="备注">
           <el-input v-model="form.notes" type="textarea" :rows="3" />
         </el-form-item>
@@ -144,13 +153,18 @@ const customerOptions = ref([])
 const seatData = ref(null)
 const seatsLoading = ref(false)
 
+// 座位类型复选（可同时选大厅和包间）
+const selectedSeatTypes = ref([])
 // 多选座位
 const selectedHallNumbers = ref([])
 const selectedRoomIds = ref([])
 
+const showHall = computed(() => selectedSeatTypes.value.includes('hall'))
+const showRoom = computed(() => selectedSeatTypes.value.includes('room'))
+
 const form = reactive({
   customer: null, store: null, reservation_date: '', reservation_time: '',
-  party_size: 1, seat_type: '', notes: '',
+  party_size: 1, notes: '',
 })
 
 const rules = {
@@ -194,11 +208,15 @@ async function loadSeats() {
   selectedHallNumbers.value = []
   selectedRoomIds.value = []
 
-  if (form.store && form.reservation_date) {
+  if (form.store && form.reservation_date && form.reservation_time) {
     seatsLoading.value = true
     try {
       seatData.value = await request.get('/reservations/list/available_seats/', {
-        params: { store: form.store, date: form.reservation_date }
+        params: {
+          store: form.store,
+          date: form.reservation_date,
+          time: form.reservation_time,
+        }
       })
     } catch (e) {
       // handled by interceptor
@@ -206,10 +224,6 @@ async function loadSeats() {
       seatsLoading.value = false
     }
   }
-}
-
-function onStoreOrDateChange() {
-  loadSeats()
 }
 
 function onSeatTypeChange() {
@@ -222,19 +236,27 @@ async function handleSubmit() {
   if (!valid) return
 
   // 检查是否选了座位
-  if (form.seat_type === 'hall' && selectedHallNumbers.value.length === 0) {
+  const needHall = selectedSeatTypes.value.includes('hall')
+  const needRoom = selectedSeatTypes.value.includes('room')
+  if (needHall && selectedHallNumbers.value.length === 0) {
     ElMessage.warning('请至少选择一个大堂桌号')
     return
   }
-  if (form.seat_type === 'room' && selectedRoomIds.value.length === 0) {
+  if (needRoom && selectedRoomIds.value.length === 0) {
     ElMessage.warning('请至少选择一个包间')
+    return
+  }
+  if (!needHall && !needRoom) {
+    ElMessage.warning('请选择至少一种座位类型')
     return
   }
 
   saving.value = true
   try {
-    if (form.seat_type === 'hall') {
-      // 多桌号：为每个桌号创建一条预订
+    let count = 0
+
+    // 创建大堂预订
+    if (needHall) {
       for (const number of selectedHallNumbers.value) {
         await createReservation({
           customer: form.customer,
@@ -246,9 +268,12 @@ async function handleSubmit() {
           table_number: number,
           notes: form.notes,
         })
+        count++
       }
-    } else if (form.seat_type === 'room') {
-      // 多包间：为每个包间创建一条预订
+    }
+
+    // 创建包间预订
+    if (needRoom) {
       for (const roomId of selectedRoomIds.value) {
         await createReservation({
           customer: form.customer,
@@ -260,14 +285,10 @@ async function handleSubmit() {
           table_area: roomId,
           notes: form.notes,
         })
+        count++
       }
-    } else {
-      // 没选座位类型，直接创建
-      await createReservation({ ...form })
     }
 
-    const count = form.seat_type === 'hall' ? selectedHallNumbers.value.length
-      : form.seat_type === 'room' ? selectedRoomIds.value.length : 1
     ElMessage.success(`预订创建成功（${count}个座位）`)
     router.push('/reservations')
   } catch (e) {
@@ -300,6 +321,14 @@ onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
   gap: 6px;
   color: #909399;
   font-size: 14px;
+}
+
+.seat-turnover-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #409eff;
+  font-size: 12px;
 }
 
 .seat-item {

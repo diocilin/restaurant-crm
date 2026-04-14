@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from django.db.models import Count, Q
 from django.utils import timezone
-import datetime
+from datetime import datetime, timedelta, time as dt_time
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Reservation
@@ -10,6 +10,35 @@ from customers.models import Store, TableArea
 from dining.models import DiningRecord
 
 WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+
+def get_time_window_conflicts(store, reservation_date, reservation_time, exclude_pk=None):
+    """
+    获取指定时间段内（前1h~后2h）有冲突的预订QuerySet
+    """
+    res_datetime = datetime.combine(reservation_date, reservation_time)
+    window_start = (res_datetime - timedelta(hours=1)).time()
+    window_end = (res_datetime + timedelta(hours=2)).time()
+
+    qs = Reservation.objects.filter(
+        store=store,
+        reservation_date=reservation_date,
+        status__in=['pending', 'confirmed', 'arrived'],
+    )
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+
+    # 筛选时间窗口内有冲突的预订ID
+    conflicting_ids = []
+    for r in qs:
+        if not r.reservation_time:
+            continue
+        r_start = (datetime.combine(reservation_date, r.reservation_time) - timedelta(hours=1)).time()
+        r_end = (datetime.combine(reservation_date, r.reservation_time) + timedelta(hours=2)).time()
+        if not (window_end <= r_start or r_end <= window_start):
+            conflicting_ids.append(r.id)
+
+    return qs.filter(id__in=conflicting_ids)
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
@@ -31,16 +60,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def overview(self, request):
-        """未来10天预订概览（按门店统计）"""
+        """未来10天预订概览（按门店统计，基于时间段冲突检测）"""
         today = timezone.localdate()
         store_id = request.query_params.get('store')
+        time_str = request.query_params.get('time')
 
         days = []
         for i in range(10):
-            target_date = today + datetime.timedelta(days=i)
+            target_date = today + timedelta(days=i)
             weekday = WEEKDAYS[target_date.weekday()]
 
-            # 获取门店列表
             stores = Store.objects.filter(is_active=True)
             if store_id:
                 stores = stores.filter(id=store_id)
@@ -54,13 +83,30 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     status__in=['pending', 'confirmed', 'arrived'],
                 )
 
-                # 包间统计（只统计包间类型）
+                # 包间统计
                 total_rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room').count()
-                booked_rooms = active_reservations.filter(seat_type='room').count()
+                # 如果传了时间参数，按时间段统计冲突的包间数
+                if time_str:
+                    try:
+                        target_time = datetime.strptime(time_str, '%H:%M:%S').time()
+                        conflicting = get_time_window_conflicts(store, target_date, target_time)
+                        booked_rooms = conflicting.filter(seat_type='room').count()
+                    except (ValueError, TypeError):
+                        booked_rooms = active_reservations.filter(seat_type='room').count()
+                else:
+                    booked_rooms = active_reservations.filter(seat_type='room').count()
 
                 # 大堂桌子统计
                 total_hall = store.hall_tables_count
-                booked_hall = active_reservations.filter(seat_type='hall').count()
+                if time_str:
+                    try:
+                        target_time = datetime.strptime(time_str, '%H:%M:%S').time()
+                        conflicting = get_time_window_conflicts(store, target_date, target_time)
+                        booked_hall = conflicting.filter(seat_type='hall').count()
+                    except (ValueError, TypeError):
+                        booked_hall = active_reservations.filter(seat_type='hall').count()
+                else:
+                    booked_hall = active_reservations.filter(seat_type='hall').count()
 
                 store_stats.append({
                     'store_id': store.id,
@@ -86,9 +132,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def available_seats(self, request):
-        """查询指定门店+日期的可用座位"""
+        """查询指定门店+日期+时间的可用座位（基于时间段冲突检测）"""
         store_id = request.query_params.get('store')
         date_str = request.query_params.get('date')
+        time_str = request.query_params.get('time')
 
         if not store_id or not date_str:
             return Response({'error': '请提供门店ID和日期'}, status=400)
@@ -98,20 +145,35 @@ class ReservationViewSet(viewsets.ModelViewSet):
         except Store.DoesNotExist:
             return Response({'error': '门店不存在'}, status=404)
 
-        # 当日已被占用的座位
-        occupied = Reservation.objects.filter(
-            store=store,
-            reservation_date=date_str,
-            status__in=['pending', 'confirmed', 'arrived'],
-        )
+        # 解析日期
+        try:
+            from datetime import date as dt_date
+            reservation_date = dt_date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            return Response({'error': '日期格式错误'}, status=400)
 
-        # 已占用的包间ID列表
-        occupied_room_ids = set(occupied.filter(seat_type='room').values_list('table_area_id', flat=True))
+        # 获取时间段内有冲突的预订
+        if time_str:
+            try:
+                reservation_time = datetime.strptime(time_str, '%H:%M:%S').time()
+                conflicting = get_time_window_conflicts(store, reservation_date, reservation_time)
+            except (ValueError, TypeError):
+                conflicting = Reservation.objects.none()
+        else:
+            # 没传时间，默认整天都不可用（保守策略）
+            conflicting = Reservation.objects.filter(
+                store=store,
+                reservation_date=reservation_date,
+                status__in=['pending', 'confirmed', 'arrived'],
+            )
 
-        # 已占用的大堂桌号列表
-        occupied_hall_numbers = set(occupied.filter(seat_type='hall').values_list('table_number', flat=True))
+        # 已占用的包间ID
+        occupied_room_ids = set(conflicting.filter(seat_type='room').values_list('table_area_id', flat=True))
 
-        # 可用包间（只查询包间类型）
+        # 已占用的大堂桌号
+        occupied_hall_numbers = set(conflicting.filter(seat_type='hall').values_list('table_number', flat=True))
+
+        # 可用包间
         rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room')
         available_rooms = []
         occupied_rooms = []
@@ -140,6 +202,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Response({
             'store_name': store.name,
             'date': date_str,
+            'time': time_str or '',
             'rooms': {
                 'available': available_rooms,
                 'occupied': occupied_rooms,
@@ -192,7 +255,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # 自动创建就餐记录
         dining_datetime = timezone.make_aware(
-            timezone.datetime.combine(reservation.reservation_date, reservation.reservation_time)
+            datetime.combine(reservation.reservation_date, reservation.reservation_time)
         ) if reservation.reservation_time else timezone.now()
 
         # 确定桌号显示
