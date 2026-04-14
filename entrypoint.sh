@@ -4,8 +4,9 @@ set -e
 # 等待数据库就绪
 echo "⏳ Waiting for database..."
 while ! python -c "
-import psycopg2, os
+import os
 try:
+    import psycopg2
     psycopg2.connect(
         host=os.environ.get('DB_HOST', 'postgres'),
         database=os.environ.get('DB_NAME', 'restaurant_crm'),
@@ -39,10 +40,6 @@ else:
 # 加载初始数据（门店和标签）
 echo "⏳ Loading initial data..."
 python manage.py load_initial_data 2>/dev/null || echo '⚠️  Initial data already loaded or command not available'
-
-# 收集静态文件（whitenoise需要）
-echo "⏳ Collecting static files..."
-python manage.py collectstatic --noinput
 
 # 启动Celery Worker和Beat（后台）
 echo "⏳ Starting Celery worker and beat..."
