@@ -22,9 +22,10 @@ class Store(models.Model):
 
 
 class TableArea(models.Model):
-    """座位区域模型（包间）"""
+    """座位区域模型"""
     AREA_TYPE_CHOICES = [
         ('room', '包间'),
+        ('hall', '大厅'),
     ]
 
     store = models.ForeignKey(
@@ -44,11 +45,7 @@ class TableArea(models.Model):
         ordering = ['store', 'id']
 
     def __str__(self):
-        return f'{self.store.name} - {self.name}'
-
-    @property
-    def area_type_display(self):
-        return '包间'
+        return f'{self.store.name} - {self.get_area_type_display()} {self.name}'
 
 
 class Tag(models.Model):
