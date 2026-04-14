@@ -19,7 +19,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def today(self, request):
         """今日预订"""
-        today = timezone.now().date()
+        today = timezone.localdate()
         queryset = self.filter_queryset(self.get_queryset()).filter(reservation_date=today)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

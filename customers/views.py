@@ -39,7 +39,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """客户统计数据"""
-        today = timezone.now().date()
+        today = timezone.localdate()
         week_ago = today - timezone.timedelta(days=7)
 
         total_customers = Customer.objects.count()

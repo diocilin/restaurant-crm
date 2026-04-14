@@ -9,7 +9,7 @@ from customers.models import Customer
 @shared_task
 def scan_upcoming_dates():
     """扫描即将到来的生日和纪念日，自动创建提醒"""
-    today = timezone.now().date()
+    today = timezone.localdate()
     # 扫描未来30天内的日期
     for days_ahead in range(0, 31):
         target_date = today + timedelta(days=days_ahead)
