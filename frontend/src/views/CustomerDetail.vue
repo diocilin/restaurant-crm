@@ -241,7 +241,6 @@ onMounted(async () => {
 
 /* 移动端信息卡片（MobileLayout :deep() 控制显示） */
 .mobile-info-card {
-  display: flex;
   flex-direction: column;
 }
 .info-row {
