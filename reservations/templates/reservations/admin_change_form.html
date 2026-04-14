@@ -209,14 +209,22 @@ django.jQuery(function($) {
         // 使用Admin专用接口（Django Session认证，不需要JWT）
         const url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + date + '&time=' + encodeURIComponent(time);
 
-        $.getJSON(url, function(data) {
+        // 用原生fetch替代$.getJSON，带上credentials确保cookie发送
+        fetch(url, {
+            credentials: 'same-origin',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
             seatData = data;
             render();
-        }).fail(function(xhr, status, error) {
-            console.error('座位加载失败:', status, error);
+        })
+        .catch(function(err) {
+            console.error('座位加载失败:', err);
             seatData = null;
-            // 显示错误信息
-            $seat.find('.seat-loading').html('⚠ 座位加载失败，请检查门店、日期和时间是否已选择');
             render();
         });
     }

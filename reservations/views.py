@@ -302,13 +302,29 @@ def admin_available_seats(request):
 
     try:
         from datetime import date as dt_date
-        reservation_date = dt_date.fromisoformat(date_str)
+        # 兼容多种日期格式
+        for fmt in ['%Y-%m-%d', '%Y/%m/%d', '%m/%d/%Y', '%d/%m/%Y']:
+            try:
+                reservation_date = dt_date.strptime(date_str, fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            raise ValueError('无法解析日期格式')
     except (ValueError, TypeError):
         return JsonResponse({'error': '日期格式错误'}, status=400)
 
     if time_str:
         try:
-            reservation_time = datetime.strptime(time_str, '%H:%M:%S').time()
+            # 兼容多种时间格式
+            for fmt in ['%H:%M:%S', '%H:%M', '%H:%M:%S.%f']:
+                try:
+                    reservation_time = datetime.strptime(time_str, fmt).time()
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError('无法解析时间格式')
             conflicting = get_time_window_conflicts(store, reservation_date, reservation_time)
         except (ValueError, TypeError):
             conflicting = Reservation.objects.none()
