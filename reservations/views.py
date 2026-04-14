@@ -42,10 +42,10 @@ def get_time_window_conflicts(store, reservation_date, reservation_time, exclude
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
-    queryset = Reservation.objects.select_related('customer', 'store', 'table_area')
+    queryset = Reservation.objects.select_related('customer', 'store').prefetch_related('table_areas')
     serializer_class = ReservationSerializer
     filterset_fields = ['customer', 'store', 'status', 'reservation_date']
-    search_fields = ['customer__name', 'customer__phone', 'table_number', 'notes']
+    search_fields = ['customer__name', 'customer__phone', 'table_numbers', 'notes']
     ordering_fields = ['reservation_date', 'reservation_time', 'party_size']
 
     @action(detail=False, methods=['get'])
@@ -90,11 +90,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     try:
                         target_time = datetime.strptime(time_str, '%H:%M:%S').time()
                         conflicting = get_time_window_conflicts(store, target_date, target_time)
-                        booked_rooms = conflicting.filter(seat_type='room').count()
+                        booked_rooms = conflicting.filter(table_areas__isnull=False).distinct().count()
                     except (ValueError, TypeError):
-                        booked_rooms = active_reservations.filter(seat_type='room').count()
+                        booked_rooms = active_reservations.filter(table_areas__isnull=False).distinct().count()
                 else:
-                    booked_rooms = active_reservations.filter(seat_type='room').count()
+                    booked_rooms = active_reservations.filter(table_areas__isnull=False).distinct().count()
 
                 # 大堂桌子统计
                 total_hall = store.hall_tables_count
@@ -102,11 +102,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     try:
                         target_time = datetime.strptime(time_str, '%H:%M:%S').time()
                         conflicting = get_time_window_conflicts(store, target_date, target_time)
-                        booked_hall = conflicting.filter(seat_type='hall').count()
+                        booked_hall = conflicting.exclude(table_numbers='').count()
                     except (ValueError, TypeError):
-                        booked_hall = active_reservations.filter(seat_type='hall').count()
+                        booked_hall = active_reservations.exclude(table_numbers='').count()
                 else:
-                    booked_hall = active_reservations.filter(seat_type='hall').count()
+                    booked_hall = active_reservations.exclude(table_numbers='').count()
 
                 store_stats.append({
                     'store_id': store.id,
@@ -168,10 +168,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
             )
 
         # 已占用的包间ID
-        occupied_room_ids = set(conflicting.filter(seat_type='room').values_list('table_area_id', flat=True))
+        occupied_room_ids = set(conflicting.values_list('table_areas__id', flat=True).distinct())
 
         # 已占用的大堂桌号
-        occupied_hall_numbers = set(conflicting.filter(seat_type='hall').values_list('table_number', flat=True))
+        occupied_hall_numbers = set()
+        for r in conflicting:
+            occupied_hall_numbers.update(r.get_table_number_list())
 
         # 可用包间
         rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room')
@@ -259,9 +261,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         ) if reservation.reservation_time else timezone.now()
 
         # 确定桌号显示
-        table_display = reservation.table_number or ''
-        if reservation.seat_type == 'room' and reservation.table_area:
-            table_display = reservation.table_area.name
+        table_display = reservation.seat_info_display
 
         dining_record = DiningRecord.objects.create(
             customer=reservation.customer,
@@ -333,8 +333,11 @@ def admin_available_seats(request):
             status__in=['pending', 'confirmed', 'arrived'],
         )
 
-    occupied_room_ids = set(conflicting.filter(seat_type='room').values_list('table_area_id', flat=True))
-    occupied_hall_numbers = set(conflicting.filter(seat_type='hall').values_list('table_number', flat=True))
+    occupied_room_ids = set(conflicting.values_list('table_areas__id', flat=True).distinct())
+
+    occupied_hall_numbers = set()
+    for r in conflicting:
+        occupied_hall_numbers.update(r.get_table_number_list())
 
     rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room')
     available_rooms = [{'id': r.id, 'name': r.name, 'capacity': r.capacity, 'available': True} for r in rooms if r.id not in occupied_room_ids]

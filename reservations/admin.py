@@ -21,19 +21,19 @@ class ReservationAdminForm(forms.ModelForm):
         model = Reservation
         fields = '__all__'
         widgets = {
-            'seat_type': forms.Select(attrs={'style': 'display:none;'}),
-            'table_number': forms.HiddenInput(),
-            'table_area': forms.HiddenInput(),
+            'table_numbers': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # 编辑时预填隐藏字段
         if self.instance.pk:
-            if self.instance.seat_type == 'hall' and self.instance.table_number:
-                self.fields['selected_hall'].initial = self.instance.table_number
-            if self.instance.seat_type == 'room' and self.instance.table_area_id:
-                self.fields['selected_rooms'].initial = str(self.instance.table_area_id)
+            if self.instance.table_numbers:
+                self.fields['selected_hall'].initial = self.instance.table_numbers
+            if self.instance.table_areas.exists():
+                self.fields['selected_rooms'].initial = ','.join(
+                    str(ta.id) for ta in self.instance.table_areas.all()
+                )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -78,12 +78,11 @@ class ReservationAdminForm(forms.ModelForm):
                 if not number:
                     continue
                 for r in conflicting:
-                    if r.seat_type == 'hall' and r.table_number == number:
+                    if number in r.get_table_number_list():
                         raise forms.ValidationError(
                             f'大堂 {number} 号桌在 {r.reservation_time.strftime("%H:%M")} 已被预订（时间冲突）'
                         )
-            cleaned_data['table_number'] = selected_hall
-            cleaned_data['seat_type'] = 'hall' if not selected_rooms else cleaned_data.get('seat_type', 'hall')
+            cleaned_data['table_numbers'] = selected_hall
 
         # 验证包间
         if selected_rooms:
@@ -96,76 +95,29 @@ class ReservationAdminForm(forms.ModelForm):
                 except ValueError:
                     continue
                 for r in conflicting:
-                    if r.table_area_id == room_id:
-                        room_name = r.table_area.name if r.table_area else str(room_id)
+                    if r.table_areas.filter(id=room_id).exists():
+                        room_name = TableArea.objects.filter(id=room_id).values_list('name', flat=True).first() or str(room_id)
                         raise forms.ValidationError(
                             f'包间 {room_name} 在 {r.reservation_time.strftime("%H:%M")} 已被预订（时间冲突）'
                         )
-            cleaned_data['table_area_id'] = int(selected_rooms.split(',')[0].strip())
-            cleaned_data['seat_type'] = 'room' if not selected_hall else cleaned_data.get('seat_type', 'room')
+            cleaned_data['selected_room_ids'] = [int(r.strip()) for r in selected_rooms.split(',') if r.strip()]
 
         return cleaned_data
 
     def save(self, commit=True):
-        """多座位时创建多条预订记录"""
+        """直接设置 table_numbers 和 table_areas，一条预订存多个座位"""
         selected_hall = self.cleaned_data.get('selected_hall', '')
-        selected_rooms = self.cleaned_data.get('selected_rooms', '')
-        hall_numbers = [n.strip() for n in selected_hall.split(',') if n.strip()]
-        room_ids = [r.strip() for r in selected_rooms.split(',') if r.strip()]
+        selected_room_ids = self.cleaned_data.get('selected_room_ids', [])
 
-        # 如果只有一个座位类型，直接保存
-        if len(hall_numbers) <= 1 and len(room_ids) <= 1:
-            if hall_numbers:
-                self.instance.table_number = hall_numbers[0]
-                self.instance.seat_type = 'hall'
-                self.instance.table_area = None
-            elif room_ids:
-                self.instance.table_area_id = int(room_ids[0])
-                self.instance.seat_type = 'room'
-                self.instance.table_number = ''
-            return super().save(commit=commit)
-
-        # 多座位：保存第一条，然后创建额外的预订
-        extra_instances = []
-        if hall_numbers:
-            self.instance.table_number = hall_numbers[0]
-            self.instance.seat_type = 'hall'
-            self.instance.table_area = None
-            for number in hall_numbers[1:]:
-                extra_instances.append(Reservation(
-                    customer=self.instance.customer,
-                    store=self.instance.store,
-                    reservation_date=self.instance.reservation_date,
-                    reservation_time=self.instance.reservation_time,
-                    party_size=self.instance.party_size,
-                    seat_type='hall',
-                    table_number=number,
-                    table_area=None,
-                    status=self.instance.status,
-                    notes=self.instance.notes,
-                ))
-        if room_ids:
-            self.instance.table_area_id = int(room_ids[0])
-            self.instance.seat_type = 'room'
-            self.instance.table_number = ''
-            for rid in room_ids[1:]:
-                extra_instances.append(Reservation(
-                    customer=self.instance.customer,
-                    store=self.instance.store,
-                    reservation_date=self.instance.reservation_date,
-                    reservation_time=self.instance.reservation_time,
-                    party_size=self.instance.party_size,
-                    seat_type='room',
-                    table_number='',
-                    table_area_id=int(rid),
-                    status=self.instance.status,
-                    notes=self.instance.notes,
-                ))
+        self.instance.table_numbers = selected_hall
 
         instance = super().save(commit=commit)
         if commit:
-            for extra in extra_instances:
-                extra.save()
+            instance.table_areas.set(selected_room_ids)
+        else:
+            # 未提交时，保存后需要手动设置 M2M
+            self._save_m2m = lambda: instance.table_areas.set(selected_room_ids)
+
         return instance
 
 
@@ -174,8 +126,8 @@ class ReservationAdmin(admin.ModelAdmin):
     form = ReservationAdminForm
     list_display = ('customer', 'store', 'reservation_date', 'reservation_time',
                     'party_size', 'seat_info', 'status')
-    list_filter = ('status', 'store', 'seat_type', 'reservation_date')
-    search_fields = ('customer__name', 'customer__phone', 'table_number', 'notes')
+    list_filter = ('status', 'store', 'reservation_date')
+    search_fields = ('customer__name', 'customer__phone', 'table_numbers', 'notes')
     date_hierarchy = 'reservation_date'
     list_editable = ('status',)
     actions = ['confirm_reservations', 'cancel_reservations']
@@ -186,7 +138,7 @@ class ReservationAdmin(admin.ModelAdmin):
             'fields': ('customer', 'store', 'reservation_date', 'reservation_time', 'party_size')
         }),
         ('座位信息', {
-            'fields': ('seat_type', 'selected_hall', 'selected_rooms'),
+            'fields': ('selected_hall', 'selected_rooms'),
             'description': '选择门店、日期和时间后自动加载可用座位。可同时选择大堂和包间，支持多选。',
             'classes': ('wide',)
         }),
@@ -197,13 +149,7 @@ class ReservationAdmin(admin.ModelAdmin):
 
     @admin.display(description='座位')
     def seat_info(self, obj):
-        if obj.seat_type == 'room' and obj.table_area:
-            return f'包间·{obj.table_area.name}'
-        elif obj.seat_type == 'hall' and obj.table_number:
-            return f'大堂·{obj.table_number}号'
-        elif obj.table_number:
-            return obj.table_number
-        return '-'
+        return obj.seat_info_display or '-'
 
     @admin.action(description='确认预订')
     def confirm_reservations(self, request, queryset):
@@ -214,4 +160,4 @@ class ReservationAdmin(admin.ModelAdmin):
         queryset.exclude(status='arrived').update(status='cancelled')
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('customer', 'store', 'table_area')
+        return super().get_queryset(request).select_related('customer', 'store').prefetch_related('table_areas')

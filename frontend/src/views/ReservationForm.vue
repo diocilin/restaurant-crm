@@ -253,43 +253,23 @@ async function handleSubmit() {
 
   saving.value = true
   try {
-    let count = 0
-
-    // 创建大堂预订
-    if (needHall) {
-      for (const number of selectedHallNumbers.value) {
-        await createReservation({
-          customer: form.customer,
-          store: form.store,
-          reservation_date: form.reservation_date,
-          reservation_time: form.reservation_time,
-          party_size: form.party_size,
-          seat_type: 'hall',
-          table_number: number,
-          notes: form.notes,
-        })
-        count++
-      }
+    const data = {
+      customer: form.customer,
+      store: form.store,
+      reservation_date: form.reservation_date,
+      reservation_time: form.reservation_time,
+      party_size: form.party_size,
+      notes: form.notes,
     }
-
-    // 创建包间预订
-    if (needRoom) {
-      for (const roomId of selectedRoomIds.value) {
-        await createReservation({
-          customer: form.customer,
-          store: form.store,
-          reservation_date: form.reservation_date,
-          reservation_time: form.reservation_time,
-          party_size: form.party_size,
-          seat_type: 'room',
-          table_area: roomId,
-          notes: form.notes,
-        })
-        count++
-      }
+    if (selectedHallNumbers.value.length > 0) {
+      data.table_numbers = selectedHallNumbers.value.join(',')
     }
+    if (selectedRoomIds.value.length > 0) {
+      data.table_areas = selectedRoomIds.value
+    }
+    await createReservation(data)
 
-    ElMessage.success(`预订创建成功（${count}个座位）`)
+    ElMessage.success('预订创建成功')
     router.push('/reservations')
   } catch (e) {
     // handled by interceptor

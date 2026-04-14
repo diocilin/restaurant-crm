@@ -125,14 +125,7 @@ function statusType(s) {
 }
 
 function formatSeatDisplay(row) {
-  if (row.seat_type === 'room') {
-    return row.table_area_name ? `包间·${row.table_area_name}` : '包间'
-  }
-  if (row.seat_type === 'hall') {
-    return row.table_number ? `大堂·${row.table_number}号` : '大堂'
-  }
-  // 旧数据兼容：无 seat_type 时显示原来的 table_number
-  return row.table_number || ''
+  return row.seat_info || row.table_numbers || '-'
 }
 
 async function loadData() {
