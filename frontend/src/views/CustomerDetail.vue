@@ -19,7 +19,8 @@
             </el-tag>
           </div>
         </template>
-        <el-descriptions :column="3" border>
+        <!-- 桌面端描述列表 -->
+        <el-descriptions :column="3" border class="desktop-desc">
           <el-descriptions-item label="姓名">{{ customer.name }}</el-descriptions-item>
           <el-descriptions-item label="手机号">{{ customer.phone }}</el-descriptions-item>
           <el-descriptions-item label="微信号">{{ customer.wechat || '-' }}</el-descriptions-item>
@@ -30,6 +31,18 @@
           <el-descriptions-item label="创建时间">{{ customer.created_at }}</el-descriptions-item>
           <el-descriptions-item label="备注" :span="3">{{ customer.notes || '-' }}</el-descriptions-item>
         </el-descriptions>
+        <!-- 移动端信息卡片 -->
+        <div class="mobile-info-card">
+          <div class="info-row"><span class="info-label">姓名</span><span class="info-value">{{ customer.name }}</span></div>
+          <div class="info-row"><span class="info-label">手机号</span><span class="info-value">{{ customer.phone }}</span></div>
+          <div class="info-row" v-if="customer.wechat"><span class="info-label">微信号</span><span class="info-value">{{ customer.wechat }}</span></div>
+          <div class="info-row"><span class="info-label">性别</span><span class="info-value">{{ customer.gender === 'M' ? '男' : customer.gender === 'F' ? '女' : '未知' }}</span></div>
+          <div class="info-row" v-if="customer.birthday"><span class="info-label">生日</span><span class="info-value">{{ customer.birthday }}</span></div>
+          <div class="info-row" v-if="customer.anniversary"><span class="info-label">纪念日</span><span class="info-value">{{ customer.anniversary }}</span></div>
+          <div class="info-row" v-if="customer.store_name"><span class="info-label">常去门店</span><span class="info-value">{{ customer.store_name }}</span></div>
+          <div class="info-row"><span class="info-label">创建时间</span><span class="info-value">{{ customer.created_at }}</span></div>
+          <div class="info-row" v-if="customer.notes"><span class="info-label">备注</span><span class="info-value">{{ customer.notes }}</span></div>
+        </div>
         <div style="margin-top: 12px;" v-if="customer.tags && customer.tags.length">
           <span style="color: #909399; margin-right: 8px;">标签：</span>
           <el-tag v-for="t in customer.tags" :key="t.id" :color="t.color" style="margin-right: 6px; color: #fff;">
@@ -39,7 +52,7 @@
       </el-card>
 
       <!-- 消费统计 -->
-      <el-row :gutter="16" style="margin-bottom: 16px;">
+      <el-row :gutter="12" style="margin-bottom: 16px;">
         <el-col :span="8">
           <el-card class="stat-card">
             <div class="stat-value">{{ customer.dining_count }}</div>
@@ -63,7 +76,8 @@
       <!-- 就餐记录 -->
       <el-card style="margin-bottom: 16px;">
         <template #header><span style="font-weight: 600;">就餐记录</span></template>
-        <el-table :data="diningRecords" size="small" stripe>
+        <!-- 桌面端表格 -->
+        <el-table :data="diningRecords" size="small" stripe class="desktop-table-detail">
           <el-table-column prop="dining_date" label="就餐时间" width="170" />
           <el-table-column prop="store_name" label="门店" width="120" />
           <el-table-column prop="party_size" label="人数" width="70" />
@@ -76,12 +90,28 @@
           </el-table-column>
           <el-table-column prop="notes" label="备注" show-overflow-tooltip />
         </el-table>
+        <!-- 移动端卡片 -->
+        <div class="mobile-card-list-detail" v-if="diningRecords.length">
+          <div v-for="row in diningRecords" :key="row.id" class="detail-card-item">
+            <div class="detail-card-row">
+              <span class="detail-card-name">{{ row.dining_date }}</span>
+              <span class="detail-card-amount">¥{{ row.total_amount }}</span>
+            </div>
+            <div class="detail-card-row">
+              <span class="detail-card-label">{{ row.store_name }} · {{ row.party_size }}人</span>
+              <span v-if="row.satisfaction" style="color: #f7ba2a; font-size: 12px;">{{ '★'.repeat(row.satisfaction) }}</span>
+            </div>
+            <div v-if="row.notes" class="detail-card-notes">{{ row.notes }}</div>
+          </div>
+        </div>
+        <el-empty v-if="!diningRecords.length" description="暂无就餐记录" :image-size="60" />
       </el-card>
 
       <!-- 预订记录 -->
       <el-card style="margin-bottom: 16px;">
         <template #header><span style="font-weight: 600;">预订记录</span></template>
-        <el-table :data="reservations" size="small" stripe>
+        <!-- 桌面端表格 -->
+        <el-table :data="reservations" size="small" stripe class="desktop-table-detail">
           <el-table-column prop="reservation_date" label="预订日期" width="120" />
           <el-table-column prop="reservation_time" label="时间" width="80" />
           <el-table-column prop="store_name" label="门店" width="120" />
@@ -93,12 +123,27 @@
           </el-table-column>
           <el-table-column prop="notes" label="备注" show-overflow-tooltip />
         </el-table>
+        <!-- 移动端卡片 -->
+        <div class="mobile-card-list-detail" v-if="reservations.length">
+          <div v-for="row in reservations" :key="row.id" class="detail-card-item">
+            <div class="detail-card-row">
+              <span class="detail-card-name">{{ row.reservation_date }} {{ row.reservation_time }}</span>
+              <el-tag :type="statusType(row.status)" size="small">{{ row.status_display }}</el-tag>
+            </div>
+            <div class="detail-card-row">
+              <span class="detail-card-label">{{ row.store_name }} · {{ row.party_size }}人</span>
+            </div>
+            <div v-if="row.notes" class="detail-card-notes">{{ row.notes }}</div>
+          </div>
+        </div>
+        <el-empty v-if="!reservations.length" description="暂无预订记录" :image-size="60" />
       </el-card>
 
       <!-- 提醒记录 -->
       <el-card>
         <template #header><span style="font-weight: 600;">提醒记录</span></template>
-        <el-table :data="reminders" size="small" stripe>
+        <!-- 桌面端表格 -->
+        <el-table :data="reminders" size="small" stripe class="desktop-table-detail">
           <el-table-column prop="remind_date" label="提醒日期" width="120" />
           <el-table-column prop="remind_type_display" label="类型" width="80" />
           <el-table-column prop="title" label="标题" />
@@ -110,6 +155,21 @@
             </template>
           </el-table-column>
         </el-table>
+        <!-- 移动端卡片 -->
+        <div class="mobile-card-list-detail" v-if="reminders.length">
+          <div v-for="row in reminders" :key="row.id" class="detail-card-item">
+            <div class="detail-card-row">
+              <span class="detail-card-name">{{ row.title }}</span>
+              <el-tag :type="row.status === 'pending' ? 'warning' : row.status === 'handled' ? 'success' : 'info'" size="small">
+                {{ row.status_display }}
+              </el-tag>
+            </div>
+            <div class="detail-card-row">
+              <span class="detail-card-label">{{ row.remind_date }} · {{ row.remind_type_display }}</span>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="!reminders.length" description="暂无提醒记录" :image-size="60" />
       </el-card>
     </template>
   </div>
@@ -155,3 +215,129 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+/* 消费统计卡片 */
+.stat-card {
+  text-align: center;
+  padding: 12px 8px;
+}
+.stat-card .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #409EFF;
+}
+.stat-card .stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+/* 默认隐藏桌面元素，显示移动端 */
+.desktop-desc { display: none; }
+.desktop-table-detail { display: none; }
+.mobile-info-card { display: block; }
+.mobile-card-list-detail { display: block; }
+
+/* 移动端信息卡片 */
+.mobile-info-card {
+  display: flex;
+  flex-direction: column;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+.info-row:last-child {
+  border-bottom: none;
+}
+.info-label {
+  color: #909399;
+  flex-shrink: 0;
+}
+.info-value {
+  color: #303133;
+  text-align: right;
+  word-break: break-all;
+}
+
+/* 移动端详情卡片 */
+.detail-card-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+.detail-card-item:last-child {
+  border-bottom: none;
+}
+.detail-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.detail-card-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+.detail-card-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f56c6c;
+}
+.detail-card-label {
+  font-size: 12px;
+  color: #909399;
+}
+.detail-card-notes {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* 桌面端 - 显示表格，隐藏移动端 */
+@media (min-width: 768px) {
+  .desktop-desc { display: block; }
+  .desktop-table-detail { display: block; width: 100%; }
+  .mobile-info-card { display: none; }
+  .mobile-card-list-detail { display: none; }
+  .stat-card .stat-value { font-size: 24px; }
+}
+
+/* 竖屏手机优化 */
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 8px 4px;
+  }
+  .stat-card .stat-value {
+    font-size: 16px;
+  }
+  .stat-card .stat-label {
+    font-size: 11px;
+  }
+  .info-row {
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .detail-card-item {
+    padding: 8px 0;
+  }
+  .detail-card-name {
+    font-size: 13px;
+  }
+  .detail-card-amount {
+    font-size: 13px;
+  }
+  .detail-card-label {
+    font-size: 11px;
+  }
+  .detail-card-notes {
+    font-size: 11px;
+  }
+}
+</style>

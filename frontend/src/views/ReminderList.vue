@@ -92,7 +92,7 @@
     </div>
 
     <!-- 新建提醒对话框 -->
-    <el-dialog v-model="showCreateDialog" title="新建提醒" width="500px">
+    <el-dialog v-model="showCreateDialog" title="新建提醒" class="create-dialog">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="80px">
         <el-form-item label="客户" prop="customer">
           <el-select v-model="createForm.customer" filterable remote :remote-method="searchCustomers"
@@ -320,6 +320,26 @@ onMounted(() => { loadData() })
   .card-actions .el-button {
     padding: 6px 8px;
     font-size: 12px;
+  }
+
+  /* 新建提醒对话框竖屏适配 */
+  .create-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 2vh auto !important;
+  }
+  .create-dialog :deep(.el-form-item__label) {
+    width: 60px !important;
+    min-width: 60px !important;
+    font-size: 13px;
+  }
+  .create-dialog :deep(.el-form-item__content) {
+    flex: 1;
+  }
+  .create-dialog :deep(.el-input),
+  .create-dialog :deep(.el-select),
+  .create-dialog :deep(.el-date-editor),
+  .create-dialog :deep(.el-textarea) {
+    width: 100% !important;
   }
 }
 </style>

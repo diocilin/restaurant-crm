@@ -94,7 +94,7 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="editDialogVisible" title="编辑就餐记录" width="500px">
+    <el-dialog v-model="editDialogVisible" title="编辑就餐记录" class="edit-dialog">
       <el-form :model="editForm" label-width="100px">
         <el-form-item label="客户">
           <el-input :value="editForm.customer_name" disabled />
@@ -377,6 +377,26 @@ onMounted(() => {
   .card-actions .el-button {
     padding: 6px 8px;
     font-size: 12px;
+  }
+
+  /* 编辑对话框竖屏适配 */
+  .edit-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 2vh auto !important;
+  }
+  .edit-dialog :deep(.el-form-item__label) {
+    width: 70px !important;
+    min-width: 70px !important;
+    font-size: 13px;
+  }
+  .edit-dialog :deep(.el-form-item__content) {
+    flex: 1;
+  }
+  .edit-dialog :deep(.el-input),
+  .edit-dialog :deep(.el-select),
+  .edit-dialog :deep(.el-date-editor),
+  .edit-dialog :deep(.el-textarea) {
+    width: 100% !important;
   }
 }
 </style>

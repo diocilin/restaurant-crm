@@ -5,7 +5,7 @@
       <el-button @click="$router.back()">返回</el-button>
     </div>
     <el-card>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" style="max-width: 600px;">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" class="dining-form" style="max-width: 600px;">
         <el-form-item label="客户" prop="customer">
           <el-select v-model="form.customer" filterable remote :remote-method="searchCustomers"
             placeholder="搜索客户姓名或手机号" style="width: 100%;">
@@ -88,3 +88,25 @@ async function handleSubmit() {
 
 onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
 </script>
+
+<style scoped>
+@media (max-width: 480px) {
+  .dining-form {
+    max-width: 100% !important;
+  }
+  .dining-form :deep(.el-form-item__label) {
+    width: 70px !important;
+    min-width: 70px !important;
+    font-size: 13px;
+  }
+  .dining-form :deep(.el-form-item__content) {
+    flex: 1;
+  }
+  .dining-form :deep(.el-input),
+  .dining-form :deep(.el-select),
+  .dining-form :deep(.el-date-editor),
+  .dining-form :deep(.el-textarea) {
+    width: 100% !important;
+  }
+}
+</style>
