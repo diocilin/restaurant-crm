@@ -139,7 +139,7 @@ class ReservationAdmin(admin.ModelAdmin):
         }),
         ('座位信息', {
             'fields': ('selected_hall', 'selected_rooms'),
-            'description': '选择门店、日期和时间后自动加载可用座位。可同时选择大堂和包间，支持多选。',
+            'description': '<div id="seat-selector"><div class="seat-hint">请先选择门店、预订日期和预订时间</div></div>',
             'classes': ('wide',)
         }),
         ('其他', {

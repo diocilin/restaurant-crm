@@ -41,7 +41,6 @@
 }
 </style>
 <script>
-// 全局函数，在DOM ready后调用
 function initSeatSelector() {
     var storeField = document.getElementById('id_store');
     var dateField = document.getElementById('id_reservation_date');
@@ -51,9 +50,8 @@ function initSeatSelector() {
     var $seat = document.getElementById('seat-selector');
 
     if (!$seat || !storeField) {
-        console.error('initSeatSelector: missing elements', {
-            seat: !!$seat, store: !!storeField, date: !!dateField, time: !!timeField
-        });
+        console.error('initSeatSelector: missing elements');
+        setTimeout(initSeatSelector, 300);
         return;
     }
 
@@ -140,7 +138,6 @@ function initSeatSelector() {
 
         $seat.innerHTML = html;
 
-        // 绑定座位点击
         var items = $seat.querySelectorAll('.seat-item:not(.occupied)');
         for (var i = 0; i < items.length; i++) {
             items[i].addEventListener('click', function() {
@@ -160,7 +157,6 @@ function initSeatSelector() {
             });
         }
 
-        // 绑定checkbox
         var chkHall2 = document.getElementById('chk-hall');
         var chkRoom2 = document.getElementById('chk-room');
         if (chkHall2) chkHall2.addEventListener('change', function() {
@@ -187,7 +183,13 @@ function initSeatSelector() {
 
         if (!storeId || !date || !time) return;
 
+        // 转换日期格式: 2026/04/15 → 2026-04-15
         var dateFormatted = date.replace(/\//g, '-');
+
+        // 补全时间格式: 05:04 → 05:04:00
+        var timeParts = time.split(':');
+        if (timeParts.length === 2) time = time + ':00';
+
         var url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + dateFormatted + '&time=' + encodeURIComponent(time);
 
         console.log('Loading seats:', url);
@@ -212,8 +214,8 @@ function initSeatSelector() {
     storeField.addEventListener('change', loadSeats);
     dateField.addEventListener('change', loadSeats);
     timeField.addEventListener('change', loadSeats);
-    dateField.addEventListener('input', function() { setTimeout(loadSeats, 200); });
-    timeField.addEventListener('input', function() { setTimeout(loadSeats, 200); });
+    dateField.addEventListener('input', function() { setTimeout(loadSeats, 300); });
+    timeField.addEventListener('input', function() { setTimeout(loadSeats, 300); });
 
     render();
 
@@ -224,24 +226,11 @@ function initSeatSelector() {
     {% endif %}
 }
 
-// 多种方式确保DOM ready后执行
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSeatSelector);
 } else {
     initSeatSelector();
 }
-// 兜底：如果上面没执行，500ms后再试一次
-setTimeout(function() {
-    if (!document.getElementById('seat-selector') || document.getElementById('seat-selector').innerHTML.indexOf('seat-type-checks') < 0) {
-        initSeatSelector();
-    }
-}, 500);
+setTimeout(initSeatSelector, 500);
 </script>
-{% endblock %}
-
-{% block content %}
-{{ block.super }}
-<div id="seat-selector">
-    <div class="seat-hint">请先选择门店、预订日期和预订时间</div>
-</div>
 {% endblock %}
