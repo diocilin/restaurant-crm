@@ -40,15 +40,15 @@ else:
 echo "⏳ Loading initial data..."
 python manage.py load_initial_data 2>/dev/null || echo '⚠️  Initial data already loaded or command not available'
 
-# 收集静态文件
+# 收集静态文件（whitenoise需要）
 echo "⏳ Collecting static files..."
-python manage.py collectstatic --noinput 2>/dev/null || true
+python manage.py collectstatic --noinput
 
 # 启动Celery Worker和Beat（后台）
 echo "⏳ Starting Celery worker and beat..."
 celery -A config worker --loglevel=info &
 celery -A config beat --loglevel=info &
 
-# 启动Django
-echo "🚀 Starting Django server on port 8000..."
+# 启动Django（0.0.0.0确保局域网可访问）
+echo "🚀 Starting Django on port 8000..."
 exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120

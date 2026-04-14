@@ -3,7 +3,7 @@
     <div class="login-card">
       <div class="login-header">
         <el-icon size="48" color="#409EFF"><Shop /></el-icon>
-        <h1>餐饮客户管理系统</h1>
+        <h1>大河有鱼客户管理系统</h1>
         <p>Restaurant CRM</p>
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="handleLogin">

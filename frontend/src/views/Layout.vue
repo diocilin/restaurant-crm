@@ -7,7 +7,7 @@
     <el-aside :width="isCollapse ? '64px' : '220px'" :class="['aside', { 'aside-mobile': isMobile, 'aside-mobile-show': isMobile && !isCollapse }]">
       <div class="logo">
         <el-icon size="24"><Shop /></el-icon>
-        <span v-show="!isCollapse" class="logo-text">餐饮CRM</span>
+        <span v-show="!isCollapse" class="logo-text">大河有鱼</span>
       </div>
       <el-menu
         :default-active="activeMenu"
