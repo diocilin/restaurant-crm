@@ -223,7 +223,7 @@ onMounted(async () => {
   padding: 12px 8px;
 }
 .stat-card .stat-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #409EFF;
 }
@@ -233,13 +233,13 @@ onMounted(async () => {
   margin-top: 4px;
 }
 
-/* 默认隐藏桌面元素，显示移动端 */
-.desktop-desc { display: none; }
-.desktop-table-detail { display: none; }
-.mobile-info-card { display: block; }
-.mobile-card-list-detail { display: block; }
+/* 桌面端：显示桌面元素，隐藏移动端 */
+.desktop-desc { display: block; }
+.desktop-table-detail { display: block; width: 100%; }
+.mobile-info-card { display: none; }
+.mobile-card-list-detail { display: none; }
 
-/* 移动端信息卡片 */
+/* 移动端信息卡片（MobileLayout :deep() 控制显示） */
 .mobile-info-card {
   display: flex;
   flex-direction: column;
@@ -265,7 +265,7 @@ onMounted(async () => {
   word-break: break-all;
 }
 
-/* 移动端详情卡片 */
+/* 移动端详情卡片（MobileLayout :deep() 控制显示） */
 .detail-card-item {
   padding: 10px 0;
   border-bottom: 1px solid #ebeef5;
@@ -298,46 +298,5 @@ onMounted(async () => {
   color: #606266;
   margin-top: 4px;
   line-height: 1.4;
-}
-
-/* 桌面端 - 显示表格，隐藏移动端 */
-@media (min-width: 768px) {
-  .desktop-desc { display: block; }
-  .desktop-table-detail { display: block; width: 100%; }
-  .mobile-info-card { display: none; }
-  .mobile-card-list-detail { display: none; }
-  .stat-card .stat-value { font-size: 24px; }
-}
-
-/* 竖屏手机优化 */
-@media (max-width: 480px) {
-  .stat-card {
-    padding: 8px 4px;
-  }
-  .stat-card .stat-value {
-    font-size: 16px;
-  }
-  .stat-card .stat-label {
-    font-size: 11px;
-  }
-  .info-row {
-    padding: 6px 0;
-    font-size: 13px;
-  }
-  .detail-card-item {
-    padding: 8px 0;
-  }
-  .detail-card-name {
-    font-size: 13px;
-  }
-  .detail-card-amount {
-    font-size: 13px;
-  }
-  .detail-card-label {
-    font-size: 11px;
-  }
-  .detail-card-notes {
-    font-size: 11px;
-  }
 }
 </style>

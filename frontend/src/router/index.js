@@ -1,5 +1,25 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+/**
+ * 设备检测：判断是否为移动端（手机竖屏）
+ * 使用 UserAgent + 触摸能力 + 屏幕宽度综合判断
+ */
+function isMobileDevice() {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent.toLowerCase()
+  const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+  const isPhoneUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)
+  const isNarrowScreen = window.innerWidth <= 768
+  // iPad 横屏不算手机
+  const isTablet = /ipad|tablet/i.test(ua) && window.innerWidth > 768
+  return (isPhoneUA || (hasTouchScreen && isNarrowScreen)) && !isTablet
+}
+
+// 根据设备类型选择 Layout 组件
+const LayoutComponent = isMobileDevice()
+  ? () => import('../views/MobileLayout.vue')
+  : () => import('../views/Layout.vue')
+
 const routes = [
   {
     path: '/login',
@@ -9,7 +29,7 @@ const routes = [
   },
   {
     path: '/',
-    component: () => import('../views/Layout.vue'),
+    component: LayoutComponent,
     redirect: '/dashboard',
     meta: { requiresAuth: true },
     children: [

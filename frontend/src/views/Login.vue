@@ -98,14 +98,4 @@ async function handleLogin() {
   color: #909399;
   font-size: 13px;
 }
-
-@media (max-width: 480px) {
-  .login-card {
-    padding: 24px 16px;
-  }
-
-  .login-header h1 {
-    font-size: 20px;
-  }
-}
 </style>

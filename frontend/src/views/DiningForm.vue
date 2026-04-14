@@ -90,23 +90,4 @@ onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
 </script>
 
 <style scoped>
-@media (max-width: 480px) {
-  .dining-form {
-    max-width: 100% !important;
-  }
-  .dining-form :deep(.el-form-item__label) {
-    width: 70px !important;
-    min-width: 70px !important;
-    font-size: 13px;
-  }
-  .dining-form :deep(.el-form-item__content) {
-    flex: 1;
-  }
-  .dining-form :deep(.el-input),
-  .dining-form :deep(.el-select),
-  .dining-form :deep(.el-date-editor),
-  .dining-form :deep(.el-textarea) {
-    width: 100% !important;
-  }
-}
 </style>

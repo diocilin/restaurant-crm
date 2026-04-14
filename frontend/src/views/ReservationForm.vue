@@ -87,23 +87,4 @@ onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
 </script>
 
 <style scoped>
-@media (max-width: 480px) {
-  .reservation-form {
-    max-width: 100% !important;
-  }
-  .reservation-form :deep(.el-form-item__label) {
-    width: 70px !important;
-    min-width: 70px !important;
-    font-size: 13px;
-  }
-  .reservation-form :deep(.el-form-item__content) {
-    flex: 1;
-  }
-  .reservation-form :deep(.el-input),
-  .reservation-form :deep(.el-select),
-  .reservation-form :deep(.el-date-editor),
-  .reservation-form :deep(.el-textarea) {
-    width: 100% !important;
-  }
-}
 </style>

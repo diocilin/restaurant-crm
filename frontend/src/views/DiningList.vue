@@ -216,56 +216,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 筛选栏默认（移动端）：纵向排列 */
+/* 筛选栏 - 桌面端横向排列 */
 .filter-bar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
 }
-.filter-search,
-.filter-store,
-.filter-date {
-  width: 100% !important;
+.filter-search {
+  width: 220px !important;
 }
-
-/* 桌面端筛选栏：横向排列 */
-@media (min-width: 768px) {
-  .filter-bar {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .filter-search {
-    width: 220px !important;
-  }
-  .filter-store {
-    width: 160px !important;
-  }
-  .filter-date {
-    width: 260px !important;
-  }
+.filter-store {
+  width: 160px !important;
+}
+.filter-date {
+  width: 260px !important;
 }
 
 /* 桌面端：显示表格，隐藏卡片 */
 .desktop-table {
-  display: none;
+  display: block;
+  width: 100%;
 }
 .mobile-card-list {
-  display: block;
+  display: none;
 }
 
-@media (min-width: 768px) {
-  .desktop-table {
-    display: block;
-    width: 100%;
-  }
-  .mobile-card-list {
-    display: none;
-  }
-}
-
-/* 移动端卡片样式 */
+/* 卡片样式（MobileLayout :deep() 控制显示） */
 .dining-card {
   margin-bottom: 12px;
 }
@@ -333,70 +312,5 @@ onMounted(() => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
-}
-
-@media (max-width: 767px) {
-  .pagination-wrapper {
-    justify-content: center;
-  }
-  .pagination-wrapper :deep(.el-pagination) {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-}
-
-/* 竖屏手机进一步优化 */
-@media (max-width: 480px) {
-  .dining-card {
-    margin-bottom: 8px;
-  }
-  .dining-card :deep(.el-card__body) {
-    padding: 10px;
-  }
-  .card-header {
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-  }
-  .name-text {
-    font-size: 15px;
-  }
-  .amount-text {
-    font-size: 18px;
-  }
-  .card-body {
-    margin-bottom: 8px;
-  }
-  .card-row {
-    padding: 3px 0;
-    font-size: 13px;
-  }
-  .card-actions {
-    gap: 6px;
-    padding-top: 6px;
-  }
-  .card-actions .el-button {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-
-  /* 编辑对话框竖屏适配 */
-  .edit-dialog :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 2vh auto !important;
-  }
-  .edit-dialog :deep(.el-form-item__label) {
-    width: 70px !important;
-    min-width: 70px !important;
-    font-size: 13px;
-  }
-  .edit-dialog :deep(.el-form-item__content) {
-    flex: 1;
-  }
-  .edit-dialog :deep(.el-input),
-  .edit-dialog :deep(.el-select),
-  .edit-dialog :deep(.el-date-editor),
-  .edit-dialog :deep(.el-textarea) {
-    width: 100% !important;
-  }
 }
 </style>

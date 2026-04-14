@@ -1,10 +1,7 @@
 <template>
   <el-container class="layout-container">
-    <!-- 移动端遮罩层 -->
-    <div v-if="isMobile && !isCollapse" class="mobile-overlay" @click="isCollapse = true" />
-
     <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '64px' : '220px'" :class="['aside', { 'aside-mobile': isMobile, 'aside-mobile-show': isMobile && !isCollapse }]">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
       <div class="logo">
         <el-icon size="24"><Shop /></el-icon>
         <span v-show="!isCollapse" class="logo-text">大河有鱼</span>
@@ -16,7 +13,6 @@
         background-color="#304156"
         text-color="#bfcbd9"
         active-text-color="#409EFF"
-        @select="onMenuSelect"
       >
         <el-menu-item index="/dashboard">
           <el-icon><DataAnalysis /></el-icon>
@@ -46,13 +42,13 @@
 
     <!-- 主内容区 -->
     <el-container>
-      <el-header class="header" :height="isMobile ? '50px' : '60px'">
+      <el-header class="header" height="60px">
         <div class="header-left">
           <el-icon class="collapse-btn" @click="toggleSidebar" size="20">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
-          <span class="page-title">{{ $route.meta.title || '餐饮CRM' }}</span>
+          <span class="page-title">{{ $route.meta.title || '大河有鱼' }}</span>
         </div>
         <div class="header-right">
           <el-badge :value="pendingCount" :hidden="pendingCount === 0" class="header-badge">
@@ -79,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
 import { getPendingReminders } from '../api/reminder'
@@ -87,7 +83,6 @@ import { getPendingReminders } from '../api/reminder'
 const route = useRoute()
 const router = useRouter()
 const isCollapse = ref(false)
-const isMobile = ref(false)
 const pendingCount = ref(0)
 const username = ref(localStorage.getItem('username') || '管理员')
 
@@ -100,22 +95,8 @@ const activeMenu = computed(() => {
   return path
 })
 
-function checkMobile() {
-  isMobile.value = window.innerWidth <= 768
-  if (isMobile.value) {
-    isCollapse.value = true
-  }
-}
-
 function toggleSidebar() {
   isCollapse.value = !isCollapse.value
-}
-
-function onMenuSelect() {
-  // 移动端选择菜单后自动收起侧边栏
-  if (isMobile.value) {
-    isCollapse.value = true
-  }
 }
 
 function handleCommand(cmd) {
@@ -137,14 +118,8 @@ async function loadPendingCount() {
 }
 
 onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
   loadPendingCount()
   setInterval(loadPendingCount, 300000)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -158,30 +133,6 @@ onUnmounted(() => {
   transition: width 0.3s;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-/* 移动端侧边栏 */
-.aside-mobile {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  z-index: 1001;
-}
-
-.aside-mobile.aside-mobile-show {
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
-}
-
-/* 移动端遮罩 */
-.mobile-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
 }
 
 .logo {
@@ -263,53 +214,10 @@ onUnmounted(() => {
 .main {
   background: #f5f7fa;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px;
 }
 
 .reminder-badge {
   margin-left: 8px;
-}
-
-/* ===== 响应式 ===== */
-@media (max-width: 768px) {
-  .user-name-text {
-    display: none;
-  }
-
-  .page-title {
-    font-size: 15px;
-  }
-
-  .main {
-    padding: 8px;
-  }
-}
-
-/* 竖屏手机（<=480px）进一步优化 */
-@media (max-width: 480px) {
-  .header {
-    padding: 0 10px;
-  }
-
-  .header-left {
-    gap: 6px;
-  }
-
-  .page-title {
-    font-size: 14px;
-  }
-
-  .header-right {
-    gap: 8px;
-  }
-
-  .main {
-    padding: 6px;
-  }
-
-  .logo {
-    height: 50px;
-    font-size: 16px;
-  }
 }
 </style>

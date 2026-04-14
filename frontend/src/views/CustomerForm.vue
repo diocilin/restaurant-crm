@@ -149,24 +149,4 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 移动端表单适配 */
-@media (max-width: 480px) {
-  .customer-form {
-    max-width: 100% !important;
-  }
-  .customer-form :deep(.el-form-item__label) {
-    width: 70px !important;
-    min-width: 70px !important;
-    font-size: 13px;
-  }
-  .customer-form :deep(.el-form-item__content) {
-    flex: 1;
-  }
-  .customer-form :deep(.el-input),
-  .customer-form :deep(.el-select),
-  .customer-form :deep(.el-date-editor),
-  .customer-form :deep(.el-textarea) {
-    width: 100% !important;
-  }
-}
 </style>

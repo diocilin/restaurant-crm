@@ -191,32 +191,35 @@ onMounted(() => { loadData() })
 </script>
 
 <style scoped>
-/* 筛选栏 - 移动端默认纵向 */
+/* 筛选栏 - 桌面端横向排列 */
 .filter-bar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 .filter-status, .filter-type {
-  width: 100% !important;
+  width: 130px !important;
 }
 
-/* 分页居中 */
+/* 分页 */
 .pagination-wrap {
   margin-top: 16px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
-/* 默认隐藏桌面表格，显示移动卡片 */
+/* 桌面端：显示表格，隐藏卡片 */
 .desktop-table {
-  display: none;
+  display: block;
+  width: 100%;
 }
 .mobile-card-list {
-  display: block;
+  display: none;
 }
 
-/* 移动端卡片样式 */
+/* 卡片样式（MobileLayout :deep() 控制显示） */
 .mobile-card {
   margin-bottom: 12px;
 }
@@ -266,80 +269,5 @@ onMounted(() => { loadData() })
 }
 .card-actions .el-button {
   flex: 1;
-}
-
-/* 桌面端 - 显示表格，隐藏卡片 */
-@media (min-width: 768px) {
-  .filter-bar {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .filter-status, .filter-type {
-    width: 130px !important;
-  }
-  .desktop-table {
-    display: block;
-    width: 100%;
-  }
-  .mobile-card-list {
-    display: none;
-  }
-  .pagination-wrap {
-    justify-content: flex-end;
-  }
-}
-
-/* 竖屏手机进一步优化 */
-@media (max-width: 480px) {
-  .mobile-card {
-    margin-bottom: 8px;
-  }
-  .mobile-card :deep(.el-card__body) {
-    padding: 10px;
-  }
-  .card-header {
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-  }
-  .card-name {
-    font-size: 15px;
-  }
-  .card-body {
-    gap: 4px;
-  }
-  .card-row {
-    padding: 3px 0;
-    font-size: 13px;
-  }
-  .card-actions {
-    gap: 6px;
-    margin-top: 8px;
-    padding-top: 6px;
-  }
-  .card-actions .el-button {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-
-  /* 新建提醒对话框竖屏适配 */
-  .create-dialog :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 2vh auto !important;
-  }
-  .create-dialog :deep(.el-form-item__label) {
-    width: 60px !important;
-    min-width: 60px !important;
-    font-size: 13px;
-  }
-  .create-dialog :deep(.el-form-item__content) {
-    flex: 1;
-  }
-  .create-dialog :deep(.el-input),
-  .create-dialog :deep(.el-select),
-  .create-dialog :deep(.el-date-editor),
-  .create-dialog :deep(.el-textarea) {
-    width: 100% !important;
-  }
 }
 </style>

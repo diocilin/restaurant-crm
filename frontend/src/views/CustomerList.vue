@@ -182,56 +182,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 筛选栏默认（移动端）：纵向排列 */
+/* 筛选栏 - 桌面端横向排列 */
 .filter-bar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
 }
-.filter-search,
-.filter-store,
-.filter-level {
-  width: 100% !important;
+.filter-search {
+  width: 240px !important;
 }
-
-/* 桌面端筛选栏：横向排列 */
-@media (min-width: 768px) {
-  .filter-bar {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .filter-search {
-    width: 240px !important;
-  }
-  .filter-store {
-    width: 160px !important;
-  }
-  .filter-level {
-    width: 120px !important;
-  }
+.filter-store {
+  width: 160px !important;
+}
+.filter-level {
+  width: 120px !important;
 }
 
 /* 桌面端：显示表格，隐藏卡片 */
 .desktop-table {
-  display: none;
+  display: block;
+  width: 100%;
 }
 .mobile-card-list {
-  display: block;
+  display: none;
 }
 
-@media (min-width: 768px) {
-  .desktop-table {
-    display: block;
-    width: 100%;
-  }
-  .mobile-card-list {
-    display: none;
-  }
-}
-
-/* 移动端卡片样式 */
+/* 卡片样式（MobileLayout :deep() 控制显示） */
 .customer-card {
   margin-bottom: 12px;
 }
@@ -294,47 +273,5 @@ onMounted(() => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
-}
-
-@media (max-width: 767px) {
-  .pagination-wrapper {
-    justify-content: center;
-  }
-  .pagination-wrapper :deep(.el-pagination) {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-}
-
-/* 竖屏手机进一步优化 */
-@media (max-width: 480px) {
-  .customer-card {
-    margin-bottom: 8px;
-  }
-  .customer-card :deep(.el-card__body) {
-    padding: 10px;
-  }
-  .card-header {
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-  }
-  .name-text {
-    font-size: 15px;
-  }
-  .card-body {
-    margin-bottom: 8px;
-  }
-  .card-row {
-    padding: 3px 0;
-    font-size: 13px;
-  }
-  .card-actions {
-    gap: 6px;
-    padding-top: 6px;
-  }
-  .card-actions .el-button {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
 }
 </style>

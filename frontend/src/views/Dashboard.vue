@@ -224,15 +224,16 @@ onMounted(() => { loadDashboard() })
   color: #909399;
 }
 
-/* 默认隐藏桌面表格，显示移动卡片 */
+/* 桌面端：显示表格，隐藏卡片 */
 .desktop-table {
-  display: none;
+  display: block;
+  width: 100%;
 }
 .mobile-card-list {
-  display: block;
+  display: none;
 }
 
-/* 移动端卡片条目 */
+/* 卡片样式（MobileLayout :deep() 控制显示） */
 .dash-card-item {
   padding: 10px 0;
   border-bottom: 1px solid #ebeef5;
@@ -264,48 +265,5 @@ onMounted(() => { loadDashboard() })
 .dash-card-actions {
   display: flex;
   gap: 8px;
-}
-
-/* 桌面端 - 显示表格，隐藏卡片 */
-@media (min-width: 768px) {
-  .desktop-table {
-    display: block;
-    width: 100%;
-  }
-  .mobile-card-list {
-    display: none;
-  }
-}
-
-/* 竖屏手机优化 */
-@media (max-width: 480px) {
-  .stat-card {
-    padding: 10px 4px;
-  }
-  .stat-card .el-icon {
-    margin-bottom: 4px;
-  }
-  .stat-card .stat-value {
-    font-size: 20px;
-  }
-  .stat-card .stat-label {
-    font-size: 11px;
-  }
-  .dash-card-item {
-    padding: 8px 0;
-  }
-  .dash-card-name {
-    font-size: 13px;
-  }
-  .dash-card-label {
-    font-size: 11px;
-  }
-  .dash-card-title {
-    font-size: 12px;
-  }
-  .dash-card-actions .el-button {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
 }
 </style>
