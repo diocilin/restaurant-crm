@@ -301,11 +301,10 @@ def admin_available_seats(request):
         return JsonResponse({'error': '门店不存在'}, status=404)
 
     try:
-        from datetime import date as dt_date
         # 兼容多种日期格式
         for fmt in ['%Y-%m-%d', '%Y/%m/%d', '%m/%d/%Y', '%d/%m/%Y']:
             try:
-                reservation_date = dt_date.strptime(date_str, fmt)
+                reservation_date = datetime.strptime(date_str, fmt).date()
                 break
             except ValueError:
                 continue
