@@ -27,7 +27,11 @@
       <el-table-column prop="reservation_date" label="预订日期" width="120" sortable />
       <el-table-column prop="reservation_time" label="时间" width="80" />
       <el-table-column prop="party_size" label="人数" width="70" />
-      <el-table-column prop="table_number" label="桌号" width="80" />
+      <el-table-column label="座位" width="120">
+        <template #default="{ row }">
+          {{ formatSeatDisplay(row) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="status_display" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" size="small">{{ row.status_display }}</el-tag>
@@ -69,8 +73,8 @@
             <span class="card-value">{{ row.store_name || '-' }}</span>
           </div>
           <div class="card-row">
-            <span class="card-label">人数/桌号</span>
-            <span class="card-value">{{ row.party_size }}人{{ row.table_number ? ' / ' + row.table_number : '' }}</span>
+            <span class="card-label">人数/座位</span>
+            <span class="card-value">{{ row.party_size }}人{{ formatSeatDisplay(row) ? ' / ' + formatSeatDisplay(row) : '' }}</span>
           </div>
           <div class="card-row" v-if="row.notes">
             <span class="card-label">备注</span>
@@ -118,6 +122,17 @@ const filters = reactive({ date: '', status: '', store: null })
 
 function statusType(s) {
   return { pending: 'warning', confirmed: 'primary', arrived: 'success', cancelled: 'info', noshow: 'danger' }[s] || 'info'
+}
+
+function formatSeatDisplay(row) {
+  if (row.seat_type === 'room') {
+    return row.table_area_name ? `包间·${row.table_area_name}` : '包间'
+  }
+  if (row.seat_type === 'hall') {
+    return row.table_number ? `大堂·${row.table_number}号` : '大堂'
+  }
+  // 旧数据兼容：无 seat_type 时显示原来的 table_number
+  return row.table_number || ''
 }
 
 async function loadData() {

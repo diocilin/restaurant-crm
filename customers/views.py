@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
-from .models import Store, Tag, Customer
-from .serializers import (StoreSerializer, TagSerializer,
+from .models import Store, Tag, Customer, TableArea
+from .serializers import (StoreSerializer, TagSerializer, TableAreaSerializer,
                           CustomerListSerializer, CustomerDetailSerializer,
                           CustomerCreateUpdateSerializer)
 
@@ -20,6 +20,13 @@ class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
+
+
+class TableAreaViewSet(viewsets.ModelViewSet):
+    queryset = TableArea.objects.select_related('store')
+    serializer_class = TableAreaSerializer
+    pagination_class = None
+    filterset_fields = ['store', 'is_active']
 
 
 class CustomerViewSet(viewsets.ModelViewSet):

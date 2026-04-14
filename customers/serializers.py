@@ -1,12 +1,24 @@
 from rest_framework import serializers
-from .models import Store, Tag, Customer, CustomerTag
+from .models import Store, Tag, Customer, CustomerTag, TableArea
 
 
 class StoreSerializer(serializers.ModelSerializer):
     customer_count = serializers.IntegerField(source='customers.count', read_only=True)
+    room_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
+        fields = '__all__'
+
+    def get_room_count(self, obj):
+        return obj.table_areas.filter(is_active=True).count()
+
+
+class TableAreaSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.name', read_only=True)
+
+    class Meta:
+        model = TableArea
         fields = '__all__'
 
 

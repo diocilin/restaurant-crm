@@ -42,7 +42,7 @@
         <el-card>
           <template #header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600;">🎂 即将到来的生日/纪念日</span>
+              <span style="font-weight: 600;">即将到来的生日/纪念日</span>
               <el-button link type="primary" @click="$router.push('/reminders')">查看全部</el-button>
             </div>
           </template>
@@ -85,7 +85,7 @@
         <el-card>
           <template #header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600;">📋 今日预订</span>
+              <span style="font-weight: 600;">今日预订</span>
               <el-button link type="primary" @click="$router.push('/reservations')">查看全部</el-button>
             </div>
           </template>
@@ -127,7 +127,7 @@
     <el-card style="margin-top: 16px;" v-if="pendingReminders.length">
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 600;">🔔 待处理提醒</span>
+          <span style="font-weight: 600;">待处理提醒</span>
           <el-button link type="primary" @click="$router.push('/reminders')">管理提醒</el-button>
         </div>
       </template>
@@ -164,6 +164,83 @@
         </div>
       </div>
     </el-card>
+
+    <!-- 未来10天预订概览 -->
+    <el-card style="margin-top: 16px;">
+      <template #header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600;">未来10天预订概览</span>
+          <el-button link type="primary" @click="$router.push('/reservations')">查看全部</el-button>
+        </div>
+      </template>
+      <div v-loading="overviewLoading">
+        <!-- 桌面端表格 -->
+        <el-table :data="overviewData" size="small" stripe class="desktop-table" v-if="overviewData.length">
+          <el-table-column label="日期" width="100">
+            <template #default="{ row }">
+              <div :class="{ 'overview-today': row.is_today }">
+                <div class="overview-date">{{ row.date_short }}</div>
+                <div class="overview-weekday">{{ row.weekday }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="预订详情" min-width="300">
+            <template #default="{ row }">
+              <div v-if="row.stores && row.stores.length" class="overview-stores">
+                <div v-for="store in row.stores" :key="store.store_name" class="overview-store-row">
+                  <span class="overview-store-name">{{ store.store_name }}</span>
+                  <span class="overview-seats">
+                    <span class="overview-seat-item" :class="getSeatColorClass(store.booked_rooms, store.total_rooms)">
+                      包间 {{ store.booked_rooms }}/{{ store.total_rooms }}
+                    </span>
+                    <span class="overview-seat-item" :class="getSeatColorClass(store.booked_hall, store.total_hall)">
+                      大堂 {{ store.booked_hall }}/{{ store.total_hall }}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <span v-else class="overview-no-data">暂无数据</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="总计" width="80">
+            <template #default="{ row }">
+              <span v-if="row.stores && row.stores.length">
+                {{ row.stores.reduce((sum, s) => sum + (s.total_reservations || 0), 0) }}
+              </span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 移动端卡片 -->
+        <div class="mobile-card-list">
+          <div v-for="day in overviewData" :key="day.date" class="overview-card">
+            <div class="overview-card-header" :class="{ 'overview-today': day.is_today }">
+              <div class="overview-card-date">
+                <span class="overview-date">{{ day.date_short }}</span>
+                <span class="overview-weekday">{{ day.weekday }}</span>
+              </div>
+              <el-tag v-if="day.is_today" type="danger" size="small">今天</el-tag>
+            </div>
+            <div v-if="day.stores && day.stores.length" class="overview-card-body">
+              <div v-for="store in day.stores" :key="store.store_name" class="overview-store-row">
+                <span class="overview-store-name">{{ store.store_name }}</span>
+                <div class="overview-seat-tags">
+                  <span class="overview-seat-item" :class="getSeatColorClass(store.booked_rooms, store.total_rooms)">
+                    包间 {{ store.booked_rooms }}/{{ store.total_rooms }}
+                  </span>
+                  <span class="overview-seat-item" :class="getSeatColorClass(store.booked_hall, store.total_hall)">
+                    大堂 {{ store.booked_hall }}/{{ store.total_hall }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="overview-no-data">暂无数据</div>
+          </div>
+          <el-empty v-if="!overviewLoading && overviewData.length === 0" description="暂无概览数据" :image-size="60" />
+        </div>
+      </div>
+    </el-card>
   </div>
 </template>
 
@@ -171,13 +248,23 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getCustomerStats } from '../api/customer'
-import { getTodayReservations } from '../api/reservation'
+import { getTodayReservations, getReservationOverview } from '../api/reservation'
 import { getUpcomingReminders, handleReminder, ignoreReminder } from '../api/reminder'
 
 const stats = ref({})
 const todayReservations = ref([])
 const pendingReminders = ref([])
 const upcomingDates = ref([])
+const overviewData = ref([])
+const overviewLoading = ref(false)
+
+function getSeatColorClass(booked, total) {
+  if (!total || total === 0) return 'seat-empty'
+  if (booked >= total) return 'seat-full'
+  if (booked / total > 0.5) return 'seat-busy'
+  if (booked > 0) return 'seat-some'
+  return 'seat-empty'
+}
 
 async function loadDashboard() {
   try {
@@ -195,10 +282,25 @@ async function loadDashboard() {
   }
 }
 
+async function loadOverview() {
+  overviewLoading.value = true
+  try {
+    const data = await getReservationOverview()
+    overviewData.value = data || []
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
 async function handleHandle(id) { await handleReminder(id); ElMessage.success('已处理'); loadDashboard() }
 async function handleIgnore(id) { await ignoreReminder(id); ElMessage.success('已忽略'); loadDashboard() }
 
-onMounted(() => { loadDashboard() })
+onMounted(() => {
+  loadDashboard()
+  loadOverview()
+})
 </script>
 
 <style scoped>
@@ -265,5 +367,123 @@ onMounted(() => { loadDashboard() })
 .dash-card-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 预订概览样式 */
+.overview-today {
+  font-weight: 700;
+  color: #f56c6c;
+}
+
+.overview-date {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.overview-today .overview-date {
+  color: #f56c6c;
+}
+
+.overview-weekday {
+  font-size: 12px;
+  color: #909399;
+}
+
+.overview-stores {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-store-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overview-store-name {
+  font-size: 13px;
+  color: #606266;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.overview-seats {
+  display: flex;
+  gap: 8px;
+}
+
+.overview-seat-item {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 座位颜色状态 */
+.seat-full {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border: 1px solid #fbc4c4;
+}
+
+.seat-busy {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+  border: 1px solid #f5dab1;
+}
+
+.seat-some {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #b3d8ff;
+}
+
+.seat-empty {
+  background-color: #f4f4f5;
+  color: #909399;
+  border: 1px solid #e9e9eb;
+}
+
+.overview-no-data {
+  color: #c0c4cc;
+  font-size: 13px;
+}
+
+/* 移动端概览卡片 */
+.overview-card {
+  padding: 12px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.overview-card:last-child {
+  border-bottom: none;
+}
+
+.overview-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.overview-card-date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.overview-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overview-seat-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 </style>

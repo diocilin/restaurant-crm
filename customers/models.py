@@ -7,7 +7,8 @@ class Store(models.Model):
     name = models.CharField('门店名称', max_length=100)
     address = models.CharField('门店地址', max_length=255, blank=True, default='')
     phone = models.CharField('联系电话', max_length=20, blank=True, default='')
-    tables_count = models.PositiveIntegerField('桌位数', default=20)
+    hall_tables_count = models.PositiveIntegerField('大堂桌数', default=20,
+        help_text='大堂桌子数量，编号自动生成为 01, 02, 03...')
     is_active = models.BooleanField('是否营业', default=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
 
@@ -18,6 +19,36 @@ class Store(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TableArea(models.Model):
+    """座位区域模型（包间）"""
+    AREA_TYPE_CHOICES = [
+        ('room', '包间'),
+    ]
+
+    store = models.ForeignKey(
+        Store, on_delete=models.CASCADE,
+        related_name='table_areas', verbose_name='门店'
+    )
+    area_type = models.CharField('区域类型', max_length=10, choices=AREA_TYPE_CHOICES, default='room')
+    name = models.CharField('包间名称', max_length=50,
+        help_text='如：牡丹厅、VIP包间等，自由命名')
+    capacity = models.PositiveIntegerField('可容纳人数', default=10)
+    is_active = models.BooleanField('是否可用', default=True)
+
+    class Meta:
+        verbose_name = '座位区域'
+        verbose_name_plural = '座位区域'
+        unique_together = ('store', 'name')
+        ordering = ['store', 'id']
+
+    def __str__(self):
+        return f'{self.store.name} - {self.name}'
+
+    @property
+    def area_type_display(self):
+        return '包间'
 
 
 class Tag(models.Model):

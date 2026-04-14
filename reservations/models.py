@@ -10,6 +10,10 @@ class Reservation(models.Model):
         ('cancelled', '已取消'),
         ('noshow', '未到店'),
     ]
+    SEAT_TYPE_CHOICES = [
+        ('hall', '大堂'),
+        ('room', '包间'),
+    ]
 
     customer = models.ForeignKey(
         'customers.Customer', on_delete=models.CASCADE,
@@ -22,7 +26,14 @@ class Reservation(models.Model):
     reservation_date = models.DateField('预订日期')
     reservation_time = models.TimeField('预订时间')
     party_size = models.PositiveIntegerField('预订人数', default=1)
-    table_number = models.CharField('预订桌号', max_length=20, blank=True, default='')
+    seat_type = models.CharField('座位类型', max_length=10, choices=SEAT_TYPE_CHOICES,
+        blank=True, default='', help_text='大堂或包间')
+    table_number = models.CharField('桌号/包间名', max_length=50, blank=True, default='',
+        help_text='大堂桌号(01,02...)或包间名称')
+    table_area = models.ForeignKey(
+        'customers.TableArea', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='包间', related_name='reservations'
+    )
     status = models.CharField('状态', max_length=15, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField('备注', blank=True, default='')
     created_at = models.DateTimeField('创建时间', auto_now_add=True)

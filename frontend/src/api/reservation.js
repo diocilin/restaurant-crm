@@ -8,6 +8,14 @@ export function getTodayReservations() {
   return request.get('/reservations/list/today/')
 }
 
+export function getReservationOverview(params) {
+  return request.get('/reservations/list/overview/', { params })
+}
+
+export function getAvailableSeats(storeId, date) {
+  return request.get('/reservations/list/available_seats/', { params: { store: storeId, date } })
+}
+
 export function getCalendarReservations(params) {
   return request.get('/reservations/list/calendar/', { params })
 }
