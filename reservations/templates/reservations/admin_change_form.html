@@ -54,36 +54,48 @@ django.jQuery(function($) {
     const storeField = $('#id_store');
     const dateField = $('#id_reservation_date');
     const timeField = $('#id_reservation_time');
-    const seatTypeField = $('#id_seat_type'); // hidden
-    const hallField = $('#id_selected_hall');  // hidden
-    const roomField = $('#id_selected_rooms'); // hidden
+    const hallField = $('#id_selected_hall');
+    const roomField = $('#id_selected_rooms');
 
     // 状态
     let selectedHall = [];
     let selectedRooms = [];
     let seatData = null;
 
-    // 在座位信息区域插入自定义UI
-    const seatSection = $('#seat-selector');
-    if (!seatSection.length) {
-        // 找到座位信息 fieldset（通过隐藏字段定位）
-        const fieldset = $('fieldset.module:has(#id_selected_hall)');
-        const desc = fieldset.find('.description');
+    // 在座位信息区域插入自定义UI（多种方式尝试定位）
+    let $seat = $('#seat-selector');
+    if (!$seat.length) {
         const container = $('<div id="seat-selector"></div>');
-        if (desc.length) {
-            desc.after(container);
-        } else if (fieldset.length) {
-            fieldset.find('.form-row').first().before(container);
-        } else {
-            // 兜底：插入到页面中
-            $('.submit-row').before('<div id="seat-selector"></div>');
+        // 方式1: 通过fieldset标题文本定位
+        let fieldset = $('fieldset.module h2:contains("座位信息")').closest('fieldset');
+        // 方式2: 通过隐藏字段定位
+        if (!fieldset.length) fieldset = $('fieldset.module:has(#id_selected_hall)');
+        // 方式3: 通过description文本定位
+        if (!fieldset.length) {
+            $('fieldset.module .description').each(function() {
+                if ($(this).text().indexOf('座位') >= 0) {
+                    fieldset = $(this).closest('fieldset');
+                    return false;
+                }
+            });
         }
-        // 隐藏原始字段行
+
+        if (fieldset.length) {
+            const desc = fieldset.find('.description');
+            if (desc.length) {
+                desc.after(container);
+            } else {
+                fieldset.append(container);
+            }
+        } else {
+            // 最终兜底
+            $('.submit-row').before(container);
+        }
+        // 隐藏原始隐藏字段行（不显示在页面上）
         $('#id_selected_hall').closest('.form-row').hide();
         $('#id_selected_rooms').closest('.form-row').hide();
     }
-
-    const $seat = $('#seat-selector');
+    $seat = $('#seat-selector');
 
     function render() {
         let html = '';
@@ -208,10 +220,16 @@ django.jQuery(function($) {
             return;
         }
 
-        // 使用Admin专用接口（Django Session认证，不需要JWT）
-        const url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + date + '&time=' + encodeURIComponent(time);
+        // 显示加载中
+        render();
 
-        // 用原生fetch替代$.getJSON，带上credentials确保cookie发送
+        // 转换日期格式：2026/04/15 → 2026-04-15
+        const dateFormatted = date.replace(/\//g, '-');
+
+        // 使用Admin专用接口
+        const timeEncoded = encodeURIComponent(time);
+        const url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + dateFormatted + '&time=' + timeEncoded;
+
         fetch(url, {
             credentials: 'same-origin',
             headers: {'X-Requested-With': 'XMLHttpRequest'}
@@ -231,10 +249,14 @@ django.jQuery(function($) {
         });
     }
 
-    // 绑定字段变更事件
+    // 绑定字段变更事件（使用原生change事件确保兼容）
     storeField.on('change', loadSeats);
     dateField.on('change', loadSeats);
     timeField.on('change', loadSeats);
+
+    // Django Admin日期/时间选择器可能用input事件而非change
+    dateField.on('input', function() { setTimeout(loadSeats, 100); });
+    timeField.on('input', function() { setTimeout(loadSeats, 100); });
 
     // 初始渲染
     render();
