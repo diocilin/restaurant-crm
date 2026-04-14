@@ -171,4 +171,20 @@ onMounted(() => { loadDashboard() })
   font-size: 13px;
   color: #909399;
 }
+
+/* 竖屏手机优化 */
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 10px 4px;
+  }
+  .stat-card .el-icon {
+    margin-bottom: 4px;
+  }
+  .stat-card .stat-value {
+    font-size: 20px;
+  }
+  .stat-card .stat-label {
+    font-size: 11px;
+  }
+}
 </style>

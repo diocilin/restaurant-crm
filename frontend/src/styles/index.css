@@ -55,11 +55,6 @@ html, body, #app {
   margin-top: 6px;
 }
 
-/* ===== 表格移动端适配 ===== */
-.el-table {
-  --el-table-border-color: #ebeef5;
-}
-
 /* ===== 分页适配 ===== */
 .el-pagination {
   flex-wrap: wrap;
@@ -78,14 +73,83 @@ html, body, #app {
   word-break: break-word;
 }
 
-/* ===== 响应式 - 手机端 ===== */
-@media (max-width: 768px) {
+/* ===== 响应式 - 竖屏手机（<=480px） ===== */
+@media (max-width: 480px) {
   .page-container {
-    padding: 10px;
+    padding: 8px;
   }
 
   .page-header {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .page-header h2 {
+    font-size: 15px;
+  }
+
+  .page-header .el-button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .filter-bar .el-input,
+  .filter-bar .el-select,
+  .filter-bar .el-date-picker {
+    width: 100% !important;
+  }
+
+  .stat-card {
+    padding: 10px 4px;
+  }
+
+  .stat-card .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-card .stat-label {
+    font-size: 11px;
+  }
+
+  .el-card {
+    --el-card-padding: 10px;
+  }
+
+  /* 分页紧凑 */
+  .el-pagination {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+
+  .el-pagination .el-pagination__total,
+  .el-pagination .el-pagination__sizes {
+    display: none;
+  }
+
+  /* 表单标签宽度缩小 */
+  .el-form--label-top .el-form-item__label,
+  .el-form-item__label {
+    font-size: 13px;
+  }
+
+  /* 对话框几乎全屏 */
+  .el-dialog {
+    width: 95% !important;
+    margin: 2vh auto !important;
+  }
+}
+
+/* ===== 响应式 - 横屏手机/小平板（481-768px） ===== */
+@media (min-width: 481px) and (max-width: 768px) {
+  .page-container {
+    padding: 10px;
   }
 
   .page-header h2 {
@@ -108,27 +172,8 @@ html, body, #app {
     font-size: 22px;
   }
 
-  .stat-card .stat-label {
-    font-size: 12px;
-  }
-
   .el-card {
     --el-card-padding: 12px;
-  }
-
-  /* 表格行间距紧凑 */
-  .el-table .el-table__cell {
-    padding: 6px 0;
-  }
-
-  /* 表格字体缩小 */
-  .el-table {
-    font-size: 13px;
-  }
-
-  /* 分页居中 */
-  .el-pagination {
-    padding: 8px 0;
   }
 }
 

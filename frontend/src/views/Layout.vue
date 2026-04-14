@@ -284,4 +284,32 @@ onUnmounted(() => {
     padding: 8px;
   }
 }
+
+/* 竖屏手机（<=480px）进一步优化 */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 10px;
+  }
+
+  .header-left {
+    gap: 6px;
+  }
+
+  .page-title {
+    font-size: 14px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .main {
+    padding: 6px;
+  }
+
+  .logo {
+    height: 50px;
+    font-size: 16px;
+  }
+}
 </style>
