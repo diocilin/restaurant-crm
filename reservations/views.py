@@ -54,8 +54,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     status__in=['pending', 'confirmed', 'arrived'],
                 )
 
-                # 包间统计
-                total_rooms = TableArea.objects.filter(store=store, is_active=True).count()
+                # 包间统计（只统计包间类型）
+                total_rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room').count()
                 booked_rooms = active_reservations.filter(seat_type='room').count()
 
                 # 大堂桌子统计
@@ -111,8 +111,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # 已占用的大堂桌号列表
         occupied_hall_numbers = set(occupied.filter(seat_type='hall').values_list('table_number', flat=True))
 
-        # 可用包间
-        rooms = TableArea.objects.filter(store=store, is_active=True)
+        # 可用包间（只查询包间类型）
+        rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room')
         available_rooms = []
         occupied_rooms = []
         for room in rooms:
