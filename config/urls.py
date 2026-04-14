@@ -40,7 +40,7 @@ urlpatterns = [
 FRONTEND_DIR = getattr(settings, 'FRONTEND_DIST_DIR', None)
 if FRONTEND_DIR and FRONTEND_DIR.is_dir():
     urlpatterns += [
-        re_path(r'^(?!api/|admin/|static/|media/)(?P<path>.*)$', serve_frontend, name='frontend'),
+        re_path(r'^(?!api/|admin|static/|media/)(?P<path>.*)$', serve_frontend, name='frontend'),
     ]
 
 # 开发模式下提供媒体文件
