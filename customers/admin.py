@@ -5,10 +5,13 @@ from .models import Store, Tag, Customer, CustomerTag, TableArea
 
 class TableAreaInline(admin.TabularInline):
     model = TableArea
-    extra = 1
+    extra = 0
     verbose_name = '包间'
     verbose_name_plural = '包间'
     fields = ('name', 'capacity', 'is_active')
+    # 只显示包间，大厅桌子通过 hall_tables_count 自动管理
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(area_type='room')
 
 
 @admin.register(Store)
@@ -21,7 +24,7 @@ class StoreAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
-            room_count=Count('table_areas', filter=Q(table_areas__is_active=True))
+            room_count=Count('table_areas', filter=Q(table_areas__is_active=True, table_areas__area_type='room'))
         )
 
     @admin.display(description='包间数')
