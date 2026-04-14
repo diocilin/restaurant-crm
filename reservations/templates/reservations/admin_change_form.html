@@ -206,14 +206,17 @@ django.jQuery(function($) {
             return;
         }
 
-        // 转换时间格式 Django admin 用的是 HH:MM:SS
-        const url = '/api/reservations/list/available_seats/?store=' + storeId + '&date=' + date + '&time=' + encodeURIComponent(time);
+        // 使用Admin专用接口（Django Session认证，不需要JWT）
+        const url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + date + '&time=' + encodeURIComponent(time);
 
         $.getJSON(url, function(data) {
             seatData = data;
             render();
-        }).fail(function() {
+        }).fail(function(xhr, status, error) {
+            console.error('座位加载失败:', status, error);
             seatData = null;
+            // 显示错误信息
+            $seat.find('.seat-loading').html('⚠ 座位加载失败，请检查门店、日期和时间是否已选择');
             render();
         });
     }

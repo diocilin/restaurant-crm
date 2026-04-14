@@ -278,3 +278,69 @@ class ReservationViewSet(viewsets.ModelViewSet):
             'dining_record_id': dining_record.id,
             'message': '已标记到店并自动创建就餐记录',
         })
+
+
+def admin_available_seats(request):
+    """Admin专用座位查询接口（使用Django Session认证，不需要JWT）"""
+    from django.http import JsonResponse
+    from django.contrib.auth.decorators import login_required
+
+    if not request.user.is_staff:
+        return JsonResponse({'error': '无权限'}, status=403)
+
+    store_id = request.GET.get('store')
+    date_str = request.GET.get('date')
+    time_str = request.GET.get('time')
+
+    if not store_id or not date_str:
+        return JsonResponse({'error': '请提供门店ID和日期'}, status=400)
+
+    try:
+        store = Store.objects.get(id=store_id)
+    except Store.DoesNotExist:
+        return JsonResponse({'error': '门店不存在'}, status=404)
+
+    try:
+        from datetime import date as dt_date
+        reservation_date = dt_date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': '日期格式错误'}, status=400)
+
+    if time_str:
+        try:
+            reservation_time = datetime.strptime(time_str, '%H:%M:%S').time()
+            conflicting = get_time_window_conflicts(store, reservation_date, reservation_time)
+        except (ValueError, TypeError):
+            conflicting = Reservation.objects.none()
+    else:
+        conflicting = Reservation.objects.filter(
+            store=store, reservation_date=reservation_date,
+            status__in=['pending', 'confirmed', 'arrived'],
+        )
+
+    occupied_room_ids = set(conflicting.filter(seat_type='room').values_list('table_area_id', flat=True))
+    occupied_hall_numbers = set(conflicting.filter(seat_type='hall').values_list('table_number', flat=True))
+
+    rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room')
+    available_rooms = [{'id': r.id, 'name': r.name, 'capacity': r.capacity, 'available': True} for r in rooms if r.id not in occupied_room_ids]
+    occupied_rooms = [{'id': r.id, 'name': r.name, 'capacity': r.capacity, 'available': False} for r in rooms if r.id in occupied_room_ids]
+
+    hall_tables = []
+    occupied_hall = []
+    for i in range(1, store.hall_tables_count + 1):
+        number = f'{i:02d}'
+        item = {'number': number}
+        if number in occupied_hall_numbers:
+            item['available'] = False
+            occupied_hall.append(item)
+        else:
+            item['available'] = True
+            hall_tables.append(item)
+
+    return JsonResponse({
+        'store_name': store.name,
+        'date': date_str,
+        'time': time_str or '',
+        'rooms': {'available': available_rooms, 'occupied': occupied_rooms, 'total': rooms.count(), 'booked': len(occupied_rooms)},
+        'hall': {'available': hall_tables, 'occupied': occupied_hall, 'total': store.hall_tables_count, 'booked': len(occupied_hall)},
+    })
