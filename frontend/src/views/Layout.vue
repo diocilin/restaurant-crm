@@ -1,7 +1,10 @@
 <template>
   <el-container class="layout-container">
+    <!-- 移动端遮罩层 -->
+    <div v-if="isMobile && !isCollapse" class="mobile-overlay" @click="isCollapse = true" />
+
     <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
+    <el-aside :width="isCollapse ? '64px' : '220px'" :class="['aside', { 'aside-mobile': isMobile, 'aside-mobile-show': isMobile && !isCollapse }]">
       <div class="logo">
         <el-icon size="24"><Shop /></el-icon>
         <span v-show="!isCollapse" class="logo-text">餐饮CRM</span>
@@ -13,6 +16,7 @@
         background-color="#304156"
         text-color="#bfcbd9"
         active-text-color="#409EFF"
+        @select="onMenuSelect"
       >
         <el-menu-item index="/dashboard">
           <el-icon><DataAnalysis /></el-icon>
@@ -42,9 +46,9 @@
 
     <!-- 主内容区 -->
     <el-container>
-      <el-header class="header">
+      <el-header class="header" :height="isMobile ? '50px' : '60px'">
         <div class="header-left">
-          <el-icon class="collapse-btn" @click="isCollapse = !isCollapse" size="20">
+          <el-icon class="collapse-btn" @click="toggleSidebar" size="20">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
@@ -57,7 +61,7 @@
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><UserFilled /></el-icon>
-              {{ username }}
+              <span class="user-name-text">{{ username }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -75,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
 import { getPendingReminders } from '../api/reminder'
@@ -83,6 +87,7 @@ import { getPendingReminders } from '../api/reminder'
 const route = useRoute()
 const router = useRouter()
 const isCollapse = ref(false)
+const isMobile = ref(false)
 const pendingCount = ref(0)
 const username = ref(localStorage.getItem('username') || '管理员')
 
@@ -94,6 +99,24 @@ const activeMenu = computed(() => {
   if (path.startsWith('/reminders')) return '/reminders'
   return path
 })
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+  if (isMobile.value) {
+    isCollapse.value = true
+  }
+}
+
+function toggleSidebar() {
+  isCollapse.value = !isCollapse.value
+}
+
+function onMenuSelect() {
+  // 移动端选择菜单后自动收起侧边栏
+  if (isMobile.value) {
+    isCollapse.value = true
+  }
+}
 
 function handleCommand(cmd) {
   if (cmd === 'logout') {
@@ -114,9 +137,14 @@ async function loadPendingCount() {
 }
 
 onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   loadPendingCount()
-  // 每5分钟刷新一次
   setInterval(loadPendingCount, 300000)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -129,6 +157,31 @@ onMounted(() => {
   background-color: #304156;
   transition: width 0.3s;
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 移动端侧边栏 */
+.aside-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 1001;
+}
+
+.aside-mobile.aside-mobile-show {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 移动端遮罩 */
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
 
 .logo {
@@ -157,19 +210,21 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  padding: 0 20px;
+  padding: 0 16px;
   z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .collapse-btn {
   cursor: pointer;
   color: #606266;
+  flex-shrink: 0;
 }
 
 .collapse-btn:hover {
@@ -180,22 +235,26 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 500;
   color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .header-badge {
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   color: #606266;
   font-size: 14px;
@@ -204,9 +263,25 @@ onMounted(() => {
 .main {
   background: #f5f7fa;
   overflow-y: auto;
+  padding: 12px;
 }
 
 .reminder-badge {
   margin-left: 8px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  .user-name-text {
+    display: none;
+  }
+
+  .page-title {
+    font-size: 15px;
+  }
+
+  .main {
+    padding: 8px;
+  }
 }
 </style>

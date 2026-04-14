@@ -71,11 +71,13 @@ async function handleLogin() {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-card {
-  width: 400px;
-  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 24px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -83,17 +85,27 @@ async function handleLogin() {
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .login-header h1 {
-  margin: 12px 0 4px;
-  font-size: 24px;
+  margin: 10px 0 4px;
+  font-size: 22px;
   color: #303133;
 }
 
 .login-header p {
   color: #909399;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 24px 16px;
+  }
+
+  .login-header h1 {
+    font-size: 20px;
+  }
 }
 </style>
