@@ -9,7 +9,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.name', default='', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     seat_info = serializers.CharField(source='seat_info_display', read_only=True)
-    seat_type_display = serializers.CharField(source='seat_type_display', read_only=True)
+    seat_type_display = serializers.CharField(read_only=True)
     table_area_names = serializers.SerializerMethodField()
 
     class Meta:
