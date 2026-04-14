@@ -4,27 +4,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.http import FileResponse, HttpResponseNotFound
-from django.views.static import serve
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/customers/', include('customers.urls')),
-    path('api/dining/', include('dining.urls')),
-    path('api/reservations/', include('reservations.urls')),
-    path('api/reminders/', include('reminders.urls')),
-]
-
-# 前端SPA路由 - 提供Vue构建产物的静态文件
-FRONTEND_DIR = getattr(settings, 'FRONTEND_DIST_DIR', None)
-
-if FRONTEND_DIR and FRONTEND_DIR.is_dir():
-    # 前端静态资源（js/css/img等）
-    urlpatterns += [
-        re_path(r'^(?!api/|admin/|static/|media/)(?P<path>.*)$', serve_frontend, name='frontend'),
-    ]
 
 
 def serve_frontend(request, path):
@@ -45,6 +25,23 @@ def serve_frontend(request, path):
 
     return HttpResponseNotFound('Not found.')
 
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/customers/', include('customers.urls')),
+    path('api/dining/', include('dining.urls')),
+    path('api/reservations/', include('reservations.urls')),
+    path('api/reminders/', include('reminders.urls')),
+]
+
+# 前端SPA路由 - 所有非API/admin/static请求交给Vue
+FRONTEND_DIR = getattr(settings, 'FRONTEND_DIST_DIR', None)
+if FRONTEND_DIR and FRONTEND_DIR.is_dir():
+    urlpatterns += [
+        re_path(r'^(?!api/|admin/|static/|media/)(?P<path>.*)$', serve_frontend, name='frontend'),
+    ]
 
 # 开发模式下提供媒体文件
 if settings.DEBUG:
