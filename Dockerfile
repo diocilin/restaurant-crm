@@ -35,8 +35,9 @@ COPY --from=frontend-build /app/frontend/dist ./static/frontend/
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-# 在构建阶段收集静态文件（避免每次启动重新收集导致hash变化）
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
+# 在构建阶段收集静态文件
+ENV DJANGO_DEBUG=False
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]
