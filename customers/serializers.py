@@ -11,7 +11,7 @@ class StoreSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_room_count(self, obj):
-        return obj.table_areas.filter(is_active=True).count()
+        return obj.table_areas.filter(is_active=True, area_type='room').count()
 
 
 class TableAreaSerializer(serializers.ModelSerializer):

@@ -27,8 +27,8 @@
           <el-input-number v-model="form.party_size" :min="1" :max="50" />
         </el-form-item>
 
-        <!-- 座位类型选择 -->
-        <el-form-item label="座位类型" v-if="seatData" prop="seat_type">
+        <!-- 座位类型选择（始终显示） -->
+        <el-form-item label="座位类型">
           <el-radio-group v-model="form.seat_type" @change="onSeatTypeChange">
             <el-radio-button value="hall">大堂</el-radio-button>
             <el-radio-button value="room">包间</el-radio-button>
@@ -36,7 +36,7 @@
         </el-form-item>
 
         <!-- 大堂座位选择 -->
-        <el-form-item label="大堂桌号" v-if="seatData && form.seat_type === 'hall'" prop="table_number">
+        <el-form-item label="大堂桌号" v-if="form.seat_type === 'hall' && seatData" prop="table_number">
           <div v-if="hallSeats.length === 0 && hallOccupied.length === 0" class="seat-empty">
             暂无大堂座位信息
           </div>
@@ -65,7 +65,7 @@
         </el-form-item>
 
         <!-- 包间选择 -->
-        <el-form-item label="包间" v-if="seatData && form.seat_type === 'room'" prop="table_area">
+        <el-form-item label="包间" v-if="form.seat_type === 'room' && seatData" prop="table_area">
           <div v-if="roomSeats.length === 0 && roomOccupied.length === 0" class="seat-empty">
             暂无包间信息
           </div>
