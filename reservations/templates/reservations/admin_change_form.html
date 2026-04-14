@@ -66,17 +66,19 @@ django.jQuery(function($) {
     // 在座位信息区域插入自定义UI
     const seatSection = $('#seat-selector');
     if (!seatSection.length) {
-        // 找到座位信息 fieldset 的描述区域
-        const fieldset = $('fieldset.module:has(#id_seat_type)');
+        // 找到座位信息 fieldset（通过隐藏字段定位）
+        const fieldset = $('fieldset.module:has(#id_selected_hall)');
         const desc = fieldset.find('.description');
         const container = $('<div id="seat-selector"></div>');
         if (desc.length) {
             desc.after(container);
-        } else {
+        } else if (fieldset.length) {
             fieldset.find('.form-row').first().before(container);
+        } else {
+            // 兜底：插入到页面中
+            $('.submit-row').before('<div id="seat-selector"></div>');
         }
         // 隐藏原始字段行
-        $('#id_seat_type').closest('.form-row').hide();
         $('#id_selected_hall').closest('.form-row').hide();
         $('#id_selected_rooms').closest('.form-row').hide();
     }
@@ -238,13 +240,13 @@ django.jQuery(function($) {
     render();
 
     // 编辑模式预填
-    {% if original and original.table_number %}
-    selectedHall.push('{{ original.table_number }}');
-    hallField.val('{{ original.table_number }}');
+    {% if original and original.table_numbers %}
+    selectedHall = '{{ original.table_numbers }}'.split(',').filter(function(n) { return n.trim(); });
+    hallField.val('{{ original.table_numbers }}');
     {% endif %}
-    {% if original and original.table_area_id %}
-    selectedRooms.push('{{ original.table_area_id }}');
-    roomField.val('{{ original.table_area_id }}');
+    {% if original and original.table_areas.all %}
+    selectedRooms = [{% for ta in original.table_areas.all %}'{{ ta.id }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    roomField.val(selectedRooms.join(','));
     {% endif %}
     {% if original %}
     if (storeField.val() && dateField.val() && timeField.val()) {
