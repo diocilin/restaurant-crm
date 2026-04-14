@@ -1,28 +1,22 @@
 {% extends "admin/change_form.html" %}
-{% block extrahead %}{{ block.super }}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
 <style>
-/* 座位选择区域 */
 #seat-selector { padding: 10px 0; }
 #seat-selector .seat-type-checks { margin-bottom: 12px; }
 #seat-selector .seat-type-checks label {
     display: inline-block; margin-right: 20px; font-size: 14px; cursor: pointer;
 }
-#seat-selector .seat-hint {
-    color: #888; font-size: 13px; padding: 8px 0;
-    display: flex; align-items: center; gap: 6px;
-}
+#seat-selector .seat-hint { color: #888; font-size: 13px; padding: 8px 0; }
 #seat-selector .seat-loading { color: #888; padding: 10px 0; }
-#seat-selector .seat-full {
-    color: #e6a23c; font-size: 13px; padding: 8px 0;
-    display: flex; align-items: center; gap: 6px;
-}
+#seat-selector .seat-full { color: #e6a23c; font-size: 13px; padding: 8px 0; }
 #seat-selector .seat-section-title {
     font-size: 13px; font-weight: 600; color: #555; margin: 10px 0 6px;
     padding-bottom: 4px; border-bottom: 1px solid #eee;
 }
-#seat-selector .seat-grid {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
-}
+#seat-selector .seat-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 #seat-selector .seat-item {
     display: flex; align-items: center; justify-content: center;
     min-width: 56px; height: 38px; padding: 4px 12px;
@@ -41,94 +35,70 @@
 #seat-selector .seat-item .room-name { font-size: 13px; font-weight: 500; }
 #seat-selector .seat-item .room-cap { font-size: 11px; color: #999; margin-top: 2px; }
 #seat-selector .seat-item.selected .room-cap { color: rgba(255,255,255,0.8); }
-#seat-selector .seat-count {
-    font-size: 12px; color: #409eff; margin-bottom: 6px;
-}
 #seat-selector .turnover-hint {
     font-size: 11px; color: #409eff; margin-top: 8px; padding-top: 6px;
     border-top: 1px solid #eee;
 }
 </style>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
 <script>
-django.jQuery(function($) {
-    const storeField = $('#id_store');
-    const dateField = $('#id_reservation_date');
-    const timeField = $('#id_reservation_time');
-    const hallField = $('#id_selected_hall');
-    const roomField = $('#id_selected_rooms');
+(function($) {
+    var storeField = $('#id_store');
+    var dateField = $('#id_reservation_date');
+    var timeField = $('#id_reservation_time');
+    var hallField = $('#id_selected_hall');
+    var roomField = $('#id_selected_rooms');
 
-    // 状态
-    let selectedHall = [];
-    let selectedRooms = [];
-    let seatData = null;
+    // 动态插入座位选择区域（在提交行之前）
+    var seatDiv = $('<div id="seat-selector"><div class="seat-hint">请先选择门店、预订日期和预订时间</div></div>');
+    $('.submit-row').before(seatDiv);
+    var $seat = $('#seat-selector');
 
-    // 在座位信息区域插入自定义UI（多种方式尝试定位）
-    let $seat = $('#seat-selector');
-    if (!$seat.length) {
-        const container = $('<div id="seat-selector"></div>');
-        // 方式1: 通过fieldset标题文本定位
-        let fieldset = $('fieldset.module h2:contains("座位信息")').closest('fieldset');
-        // 方式2: 通过隐藏字段定位
-        if (!fieldset.length) fieldset = $('fieldset.module:has(#id_selected_hall)');
-        // 方式3: 通过description文本定位
-        if (!fieldset.length) {
-            $('fieldset.module .description').each(function() {
-                if ($(this).text().indexOf('座位') >= 0) {
-                    fieldset = $(this).closest('fieldset');
-                    return false;
-                }
-            });
-        }
+    var selectedHall = [];
+    var selectedRooms = [];
+    var seatData = null;
 
-        if (fieldset.length) {
-            const desc = fieldset.find('.description');
-            if (desc.length) {
-                desc.after(container);
-            } else {
-                fieldset.append(container);
-            }
-        } else {
-            // 最终兜底
-            $('.submit-row').before(container);
-        }
-        // 隐藏原始隐藏字段行（不显示在页面上）
-        $('#id_selected_hall').closest('.form-row').hide();
-        $('#id_selected_rooms').closest('.form-row').hide();
-    }
-    $seat = $('#seat-selector');
+    // 编辑模式预填
+    {% if original and original.table_numbers %}
+    selectedHall = '{{ original.table_numbers }}'.split(',').filter(function(n) { return n.trim(); });
+    hallField.val('{{ original.table_numbers }}');
+    {% endif %}
+    {% if original and original.table_areas.all %}
+    selectedRooms = [{% for ta in original.table_areas.all %}'{{ ta.id }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    roomField.val(selectedRooms.join(','));
+    {% endif %}
 
     function render() {
-        let html = '';
-
-        // 座位类型复选框
+        var html = '';
         html += '<div class="seat-type-checks">';
-        html += '<label><input type="checkbox" id="chk-hall" ' + (selectedHall.length >= 0 || selectedRooms.length > 0 ? '' : '') + '> 大堂</label>';
-        html += '<label><input type="checkbox" id="chk-room"> 包间</label>';
+        html += '<label><input type="checkbox" id="chk-hall"' + (selectedHall.length > 0 ? ' checked' : '') + '> 大堂</label>';
+        html += '<label><input type="checkbox" id="chk-room"' + (selectedRooms.length > 0 ? ' checked' : '') + '> 包间</label>';
         html += '</div>';
 
-        const showHall = $('#chk-hall').is(':checked') || (selectedHall.length > 0);
-        const showRoom = $('#chk-room').is(':checked') || (selectedRooms.length > 0);
+        var showHall = $('#chk-hall').is(':checked') || selectedHall.length > 0;
+        var showRoom = $('#chk-room').is(':checked') || selectedRooms.length > 0;
 
-        // 提示
         if (!storeField.val() || !dateField.val() || !timeField.val()) {
-            html += '<div class="seat-hint">⚠ 请先选择门店、预订日期和预订时间</div>';
+            html += '<div class="seat-hint">请先选择门店、预订日期和预订时间</div>';
         } else if (!seatData) {
             html += '<div class="seat-loading">加载座位中...</div>';
         }
 
-        // 大堂
         if (showHall && seatData) {
-            const avail = seatData.hall.available || [];
-            const occ = seatData.hall.occupied || [];
+            var avail = seatData.hall.available || [];
+            var occ = seatData.hall.occupied || [];
             html += '<div class="seat-section-title">大堂桌号' + (avail.length > 0 ? '（可多选，已选 ' + selectedHall.length + ' 个）' : '') + '</div>';
             if (avail.length === 0 && occ.length === 0) {
                 html += '<div class="seat-hint">暂无大堂座位</div>';
             } else if (avail.length === 0) {
-                html += '<div class="seat-full">⚠ 大堂座位已满，需排队等待</div>';
+                html += '<div class="seat-full">大堂座位已满，需排队等待</div>';
             } else {
                 html += '<div class="seat-grid">';
                 avail.forEach(function(s) {
-                    const sel = selectedHall.includes(s.number) ? ' selected' : '';
+                    var sel = selectedHall.indexOf(s.number) >= 0 ? ' selected' : '';
                     html += '<div class="seat-item' + sel + '" data-type="hall" data-number="' + s.number + '">' + s.number + '号</div>';
                 });
                 occ.forEach(function(s) {
@@ -138,58 +108,50 @@ django.jQuery(function($) {
             }
         }
 
-        // 包间
         if (showRoom && seatData) {
-            const avail = seatData.rooms.available || [];
-            const occ = seatData.rooms.occupied || [];
+            var avail = seatData.rooms.available || [];
+            var occ = seatData.rooms.occupied || [];
             html += '<div class="seat-section-title">包间' + (avail.length > 0 ? '（可多选，已选 ' + selectedRooms.length + ' 个）' : '') + '</div>';
             if (avail.length === 0 && occ.length === 0) {
                 html += '<div class="seat-hint">暂无包间</div>';
             } else if (avail.length === 0) {
-                html += '<div class="seat-full">⚠ 包间已满，需排队等待</div>';
+                html += '<div class="seat-full">包间已满，需排队等待</div>';
             } else {
                 html += '<div class="seat-grid">';
                 avail.forEach(function(r) {
-                    const sel = selectedRooms.includes(String(r.id)) ? ' selected' : '';
+                    var sel = selectedRooms.indexOf(String(r.id)) >= 0 ? ' selected' : '';
                     html += '<div class="seat-item room-item' + sel + '" data-type="room" data-id="' + r.id + '">';
                     html += '<div class="room-name">' + r.name + '</div>';
-                    html += '<div class="room-cap">' + r.capacity + '人</div>';
-                    html += '</div>';
+                    html += '<div class="room-cap">' + r.capacity + '人</div></div>';
                 });
                 occ.forEach(function(r) {
                     html += '<div class="seat-item room-item occupied">';
                     html += '<div class="room-name">' + r.name + '</div>';
-                    html += '<div class="room-cap">' + r.capacity + '人</div>';
-                    html += '</div>';
+                    html += '<div class="room-cap">' + r.capacity + '人</div></div>';
                 });
                 html += '</div>';
             }
         }
 
-        // 翻台提示
         if (seatData) {
-            html += '<div class="turnover-hint">💡 座位锁定时段：预订时间前1小时至后2小时，超出时段可翻台预订</div>';
+            html += '<div class="turnover-hint">座位锁定时段：预订时间前1小时至后2小时，超出时段可翻台预订</div>';
         }
 
         $seat.html(html);
 
-        // 绑定事件
         $seat.find('.seat-item:not(.occupied)').on('click', function() {
-            const type = $(this).data('type');
+            var type = $(this).data('type');
             if (type === 'hall') {
-                const num = $(this).data('number');
-                const idx = selectedHall.indexOf(num);
-                if (idx >= 0) selectedHall.splice(idx, 1);
-                else selectedHall.push(num);
+                var num = $(this).data('number');
+                var idx = selectedHall.indexOf(num);
+                if (idx >= 0) selectedHall.splice(idx, 1); else selectedHall.push(num);
                 hallField.val(selectedHall.join(','));
             } else if (type === 'room') {
-                const id = String($(this).data('id'));
-                const idx = selectedRooms.indexOf(id);
-                if (idx >= 0) selectedRooms.splice(idx, 1);
-                else selectedRooms.push(id);
+                var id = String($(this).data('id'));
+                var idx = selectedRooms.indexOf(id);
+                if (idx >= 0) selectedRooms.splice(idx, 1); else selectedRooms.push(id);
                 roomField.val(selectedRooms.join(','));
             }
-            // 确保 checkbox 勾选
             if (selectedHall.length > 0) $('#chk-hall').prop('checked', true);
             if (selectedRooms.length > 0) $('#chk-room').prop('checked', true);
             render();
@@ -205,76 +167,59 @@ django.jQuery(function($) {
     }
 
     function loadSeats() {
-        const storeId = storeField.val();
-        const date = dateField.val();
-        const time = timeField.val();
+        var storeId = storeField.val();
+        var date = dateField.val();
+        var time = timeField.val();
 
         selectedHall = [];
         selectedRooms = [];
         hallField.val('');
         roomField.val('');
-
-        if (!storeId || !date || !time) {
-            seatData = null;
-            render();
-            return;
-        }
-
-        // 显示加载中
+        seatData = null;
         render();
 
-        // 转换日期格式：2026/04/15 → 2026-04-15
-        const dateFormatted = date.replace(/\//g, '-');
+        if (!storeId || !date || !time) return;
 
-        // 使用Admin专用接口
-        const timeEncoded = encodeURIComponent(time);
-        const url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + dateFormatted + '&time=' + timeEncoded;
+        var dateFormatted = date.replace(/\//g, '-');
+        var timeEncoded = encodeURIComponent(time);
+        var url = '/api/reservations/admin_seats/?store=' + storeId + '&date=' + dateFormatted + '&time=' + timeEncoded;
+
+        console.log('Loading seats:', url);
 
         fetch(url, {
             credentials: 'same-origin',
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
         .then(function(response) {
+            console.log('Response status:', response.status);
             if (!response.ok) throw new Error('HTTP ' + response.status);
             return response.json();
         })
         .then(function(data) {
+            console.log('Seat data loaded:', data);
             seatData = data;
             render();
         })
         .catch(function(err) {
             console.error('座位加载失败:', err);
             seatData = null;
-            render();
+            $seat.html('<div class="seat-hint" style="color:red;">座位加载失败: ' + err.message + '</div>');
         });
     }
 
-    // 绑定字段变更事件（使用原生change事件确保兼容）
     storeField.on('change', loadSeats);
     dateField.on('change', loadSeats);
     timeField.on('change', loadSeats);
+    dateField.on('input', function() { setTimeout(loadSeats, 200); });
+    timeField.on('input', function() { setTimeout(loadSeats, 200); });
 
-    // Django Admin日期/时间选择器可能用input事件而非change
-    dateField.on('input', function() { setTimeout(loadSeats, 100); });
-    timeField.on('input', function() { setTimeout(loadSeats, 100); });
-
-    // 初始渲染
     render();
 
-    // 编辑模式预填
-    {% if original and original.table_numbers %}
-    selectedHall = '{{ original.table_numbers }}'.split(',').filter(function(n) { return n.trim(); });
-    hallField.val('{{ original.table_numbers }}');
-    {% endif %}
-    {% if original and original.table_areas.all %}
-    selectedRooms = [{% for ta in original.table_areas.all %}'{{ ta.id }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-    roomField.val(selectedRooms.join(','));
-    {% endif %}
     {% if original %}
     if (storeField.val() && dateField.val() && timeField.val()) {
         loadSeats();
     }
     {% endif %}
-});
+})(django.jQuery);
 </script>
 {% endblock %}
