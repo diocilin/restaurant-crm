@@ -87,6 +87,10 @@ class CustomerCreateUpdateSerializer(serializers.ModelSerializer):
         return customer
 
     def _update_tags(self, customer, tag_ids):
+        from .models import Tag
+        # 过滤掉不存在的标签ID，避免外键错误
+        valid_tag_ids = set(Tag.objects.filter(id__in=tag_ids).values_list('id', flat=True))
         CustomerTag.objects.filter(customer=customer).delete()
         for tag_id in tag_ids:
-            CustomerTag.objects.create(customer=customer, tag_id=tag_id)
+            if tag_id in valid_tag_ids:
+                CustomerTag.objects.create(customer=customer, tag_id=tag_id)

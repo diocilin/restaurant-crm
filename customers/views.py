@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from .models import Store, Tag, Customer
@@ -12,11 +13,13 @@ from .serializers import (StoreSerializer, TagSerializer,
 class StoreViewSet(viewsets.ModelViewSet):
     queryset = Store.objects.all()
     serializer_class = StoreSerializer
+    pagination_class = None
 
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
