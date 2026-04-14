@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制后端代码（项目根目录结构，无 backend/ 子目录）
+# 复制后端代码
 COPY config/ ./config/
 COPY common/ ./common/
 COPY customers/ ./customers/
@@ -34,10 +34,6 @@ COPY --from=frontend-build /app/frontend/dist ./static/frontend/
 # 复制入口脚本
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
-
-# 在构建阶段收集静态文件
-ENV DJANGO_DEBUG=False
-RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]

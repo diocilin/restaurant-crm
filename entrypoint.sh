@@ -25,6 +25,20 @@ echo "✅ Database is ready!"
 echo "⏳ Running migrations..."
 python manage.py migrate --noinput
 
+# 收集静态文件（每次启动时执行，确保与运行环境一致）
+echo "⏳ Collecting static files..."
+python manage.py collectstatic --noinput 2>&1
+echo "✅ Static files collected."
+
+# 验证关键静态文件存在
+echo "⏳ Verifying admin static files..."
+if [ -f "staticfiles/admin/css/base.css" ]; then
+    echo "✅ admin/css/base.css exists"
+else
+    echo "⚠️ WARNING: admin/css/base.css NOT FOUND!"
+    ls -la staticfiles/ 2>/dev/null || echo "staticfiles directory does not exist"
+fi
+
 # 创建超级管理员（如果不存在）
 echo "⏳ Creating superuser if not exists..."
 python manage.py shell -c "
