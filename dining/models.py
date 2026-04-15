@@ -3,10 +3,16 @@ from django.db import models
 
 class DiningRecord(models.Model):
     """就餐记录"""
+    SOURCE_CHOICES = [
+        ('manual', '手动录入'),
+        ('meituan', '美团收银导入'),
+        ('reservation', '预订到店'),
+    ]
+
     customer = models.ForeignKey(
         'customers.Customer',
         on_delete=models.CASCADE, related_name='dining_records',
-        verbose_name='客户'
+        verbose_name='客户', null=True, blank=True,
     )
     store = models.ForeignKey(
         'customers.Store', on_delete=models.SET_NULL, null=True, blank=True,
@@ -19,12 +25,16 @@ class DiningRecord(models.Model):
     dishes = models.JSONField('点菜记录', blank=True, default=dict, help_text='JSON格式，如 [{"name":"宫保鸡丁","price":38,"qty":1}]')
     satisfaction = models.PositiveIntegerField('满意度', null=True, blank=True, help_text='1-5分')
     notes = models.TextField('备注', blank=True, default='')
+    source = models.CharField('数据来源', max_length=20, choices=SOURCE_CHOICES, default='manual')
+    order_no = models.CharField('外部订单号', max_length=50, blank=True, default='')
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
 
     class Meta:
         verbose_name = '就餐记录'
         verbose_name_plural = '就餐记录'
         ordering = ['-dining_date']
+        unique_together = ['store', 'order_no']
 
     def __str__(self):
-        return f'{self.customer.name} - {self.dining_date.strftime("%Y-%m-%d %H:%M")}'
+        name = self.customer.name if self.customer else '散客'
+        return f'{name} - {self.dining_date.strftime("%Y-%m-%d %H:%M")}'

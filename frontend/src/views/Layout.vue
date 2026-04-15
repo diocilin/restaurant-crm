@@ -37,6 +37,14 @@
             <el-badge v-if="pendingCount > 0" :value="pendingCount" class="reminder-badge" />
           </template>
         </el-menu-item>
+        <el-menu-item index="/import">
+          <el-icon><Upload /></el-icon>
+          <template #title>数据导入</template>
+        </el-menu-item>
+        <el-menu-item index="/dish-stats">
+          <el-icon><PieChart /></el-icon>
+          <template #title>菜品分析</template>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -77,7 +85,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Bell } from '@element-plus/icons-vue'
+import { Bell, Upload, PieChart } from '@element-plus/icons-vue'
 import { getPendingReminders } from '../api/reminder'
 
 const route = useRoute()

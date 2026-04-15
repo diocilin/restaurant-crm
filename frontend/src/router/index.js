@@ -99,6 +99,18 @@ const routes = [
         component: () => import('../views/ReminderList.vue'),
         meta: { title: '提醒管理' }
       },
+      {
+        path: 'import',
+        name: 'ExcelImport',
+        component: () => import('../views/ExcelImport.vue'),
+        meta: { title: '数据导入' }
+      },
+      {
+        path: 'dish-stats',
+        name: 'DishStats',
+        component: () => import('../views/DishStats.vue'),
+        meta: { title: '菜品分析' }
+      },
     ]
   }
 ]
