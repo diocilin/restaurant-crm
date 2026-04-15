@@ -92,8 +92,10 @@
           <!-- 桌面端表格 -->
           <el-table :data="todayReservations" size="small" stripe v-if="todayReservations.length" class="desktop-table">
             <el-table-column prop="customer_name" label="客户" width="80" />
+            <el-table-column prop="customer_phone" label="电话" width="120" />
             <el-table-column prop="reservation_time" label="时间" width="70" />
             <el-table-column prop="party_size" label="人数" width="60" />
+            <el-table-column prop="seat_info" label="座位" min-width="160" show-overflow-tooltip />
             <el-table-column prop="status_display" label="状态" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'pending' ? 'warning' : row.status === 'confirmed' ? 'primary' : 'success'" size="small">
@@ -113,8 +115,16 @@
                 </el-tag>
               </div>
               <div class="dash-card-row">
+                <span class="dash-card-label">{{ row.customer_phone }}</span>
+              </div>
+              <div class="dash-card-row">
                 <span class="dash-card-label">{{ row.reservation_time }} · {{ row.party_size }}人</span>
-                <span class="dash-card-label">{{ row.notes || '-' }}</span>
+              </div>
+              <div class="dash-card-row" v-if="row.seat_info">
+                <span class="dash-card-label">座位：{{ row.seat_info }}</span>
+              </div>
+              <div class="dash-card-row" v-if="row.notes">
+                <span class="dash-card-label">{{ row.notes }}</span>
               </div>
             </div>
           </div>
