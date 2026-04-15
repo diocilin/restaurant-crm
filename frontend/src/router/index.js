@@ -88,6 +88,12 @@ const routes = [
         meta: { title: '新建预订' }
       },
       {
+        path: 'reservations/:id/edit',
+        name: 'ReservationEdit',
+        component: () => import('../views/ReservationForm.vue'),
+        meta: { title: '编辑预订' }
+      },
+      {
         path: 'reminders',
         name: 'ReminderList',
         component: () => import('../views/ReminderList.vue'),

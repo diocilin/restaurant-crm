@@ -38,8 +38,9 @@
         </template>
       </el-table-column>
       <el-table-column prop="notes" label="备注" show-overflow-tooltip />
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
+          <el-button link type="primary" size="small" @click="$router.push('/reservations/' + row.id + '/edit')">编辑</el-button>
           <el-button v-if="row.status === 'pending'" link type="success" size="small" @click="handleConfirm(row.id)">确认</el-button>
           <el-button v-if="row.status === 'confirmed'" link type="primary" size="small" @click="handleArrive(row.id)">到店</el-button>
           <el-button v-if="row.status !== 'arrived' && row.status !== 'cancelled'" link type="warning" size="small" @click="handleCancel(row.id)">取消</el-button>
@@ -82,6 +83,7 @@
           </div>
         </div>
         <div class="card-actions">
+          <el-button type="primary" size="small" @click="$router.push('/reservations/' + row.id + '/edit')">编辑</el-button>
           <el-button v-if="row.status === 'pending'" type="success" size="small" @click="handleConfirm(row.id)">确认</el-button>
           <el-button v-if="row.status === 'confirmed'" type="primary" size="small" @click="handleArrive(row.id)">到店</el-button>
           <el-button v-if="row.status !== 'arrived' && row.status !== 'cancelled'" type="warning" size="small" plain @click="handleCancel(row.id)">取消</el-button>

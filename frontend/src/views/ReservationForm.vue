@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>新建预订</h2>
+      <h2>{{ isEdit ? '编辑预订' : '新建预订' }}</h2>
       <el-button @click="$router.back()">返回</el-button>
     </div>
     <el-card>
@@ -138,20 +138,24 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { WarningFilled, InfoFilled } from '@element-plus/icons-vue'
-import { createReservation } from '../api/reservation'
+import { createReservation, updateReservation, getReservations } from '../api/reservation'
 import { getCustomers, getStores } from '../api/customer'
 import request from '../api/request'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref(null)
 const saving = ref(false)
 const stores = ref([])
 const customerOptions = ref([])
 const seatData = ref(null)
 const seatsLoading = ref(false)
+const isEdit = computed(() => !!route.params.id)
+const editId = computed(() => route.params.id)
+const editLoaded = ref(false) // 编辑模式数据是否已加载
 
 // 座位类型复选（可同时选大厅和包间）
 const selectedSeatTypes = ref([])
@@ -205,8 +209,11 @@ function toggleRoom(room) {
 
 async function loadSeats() {
   seatData.value = null
-  selectedHallNumbers.value = []
-  selectedRoomIds.value = []
+  // 编辑模式首次加载不清空已选座位
+  if (!editLoaded.value) {
+    selectedHallNumbers.value = []
+    selectedRoomIds.value = []
+  }
 
   if (form.store && form.reservation_date && form.reservation_time) {
     seatsLoading.value = true
@@ -267,9 +274,14 @@ async function handleSubmit() {
     if (selectedRoomIds.value.length > 0) {
       data.table_areas = selectedRoomIds.value
     }
-    await createReservation(data)
 
-    ElMessage.success('预订创建成功')
+    if (isEdit.value) {
+      await updateReservation(editId.value, data)
+      ElMessage.success('预订更新成功')
+    } else {
+      await createReservation(data)
+      ElMessage.success('预订创建成功')
+    }
     router.push('/reservations')
   } catch (e) {
     // handled by interceptor
@@ -278,7 +290,41 @@ async function handleSubmit() {
   }
 }
 
-onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
+onMounted(async () => {
+  getStores().then(d => { stores.value = d.results || d })
+
+  // 编辑模式：加载已有数据
+  if (isEdit.value) {
+    try {
+      const detail = await request.get(`/reservations/list/${editId.value}/`)
+      // 回填表单
+      form.customer = detail.customer
+      form.store = detail.store
+      form.reservation_date = detail.reservation_date
+      form.reservation_time = detail.reservation_time
+      form.party_size = detail.party_size
+      form.notes = detail.notes || ''
+      // 回填客户选项
+      customerOptions.value = [{ id: detail.customer, name: detail.customer_name, phone: detail.customer_phone }]
+      // 回填座位
+      if (detail.table_numbers) {
+        selectedHallNumbers.value = detail.table_numbers.split(',').filter(n => n.trim())
+        selectedSeatTypes.value.push('hall')
+      }
+      if (detail.table_areas && detail.table_areas.length > 0) {
+        selectedRoomIds.value = detail.table_areas
+        selectedSeatTypes.value.push('room')
+      }
+      // 加载座位数据
+      if (form.store && form.reservation_date && form.reservation_time) {
+        editLoaded.value = true
+        loadSeats()
+      }
+    } catch (e) {
+      ElMessage.error('加载预订信息失败')
+    }
+  }
+})
 </script>
 
 <style scoped>
