@@ -115,6 +115,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     booked_hall_numbers.update(r.get_table_number_list())
                 booked_hall = len(booked_hall_numbers)
 
+                # 收集具体座位详情（用于前端悬浮提示）
+                booked_room_names = list(
+                    TableArea.objects.filter(id__in=booked_room_ids, area_type='room')
+                    .values_list('name', flat=True)
+                ) if booked_room_ids else []
+                booked_hall_list = sorted(booked_hall_numbers)
+
                 store_stats.append({
                     'store_id': store.id,
                     'store_name': store.name,
@@ -125,6 +132,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     'booked_hall': booked_hall,
                     'available_hall': max(0, total_hall - booked_hall),
                     'total_reservations': active_reservations.count(),
+                    'booked_room_names': booked_room_names,
+                    'booked_hall_list': booked_hall_list,
                 })
 
             days.append({

@@ -200,12 +200,16 @@
                 <div v-for="store in row.stores" :key="store.store_name" class="overview-store-row">
                   <span class="overview-store-name">{{ store.store_name }}</span>
                   <span class="overview-seats">
-                    <span class="overview-seat-item" :class="getSeatColorClass(store.booked_rooms, store.total_rooms)">
-                      包间 {{ store.booked_rooms }}/{{ store.total_rooms }}
-                    </span>
-                    <span class="overview-seat-item" :class="getSeatColorClass(store.booked_hall, store.total_hall)">
-                      大堂 {{ store.booked_hall }}/{{ store.total_hall }}
-                    </span>
+                    <el-tooltip :content="store.booked_room_names && store.booked_room_names.length ? '已预订：' + store.booked_room_names.join('、') : '暂无预订'" placement="top" :show-after="300" :disabled="!store.booked_room_names || !store.booked_room_names.length">
+                      <span class="overview-seat-item" :class="getSeatColorClass(store.booked_rooms, store.total_rooms)">
+                        包间 {{ store.booked_rooms }}/{{ store.total_rooms }}
+                      </span>
+                    </el-tooltip>
+                    <el-tooltip :content="store.booked_hall_list && store.booked_hall_list.length ? '已预订：' + store.booked_hall_list.map(n => n + '号').join('、') : '暂无预订'" placement="top" :show-after="300" :disabled="!store.booked_hall_list || !store.booked_hall_list.length">
+                      <span class="overview-seat-item" :class="getSeatColorClass(store.booked_hall, store.total_hall)">
+                        大堂 {{ store.booked_hall }}/{{ store.total_hall }}
+                      </span>
+                    </el-tooltip>
                   </span>
                 </div>
               </div>
