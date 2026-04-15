@@ -83,30 +83,37 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     status__in=['pending', 'confirmed', 'arrived'],
                 )
 
-                # 包间统计
+                # 包间统计 - 统计实际被占用的包间数量（非预订记录数）
                 total_rooms = TableArea.objects.filter(store=store, is_active=True, area_type='room').count()
-                # 如果传了时间参数，按时间段统计冲突的包间数
                 if time_str:
                     try:
                         target_time = datetime.strptime(time_str, '%H:%M:%S').time()
                         conflicting = get_time_window_conflicts(store, target_date, target_time)
-                        booked_rooms = conflicting.filter(table_areas__isnull=False).distinct().count()
+                        booked_room_ids = set(conflicting.values_list('table_areas__id', flat=True))
+                        booked_rooms = len([rid for rid in booked_room_ids if rid is not None])
                     except (ValueError, TypeError):
-                        booked_rooms = active_reservations.filter(table_areas__isnull=False).distinct().count()
+                        booked_room_ids = set(active_reservations.values_list('table_areas__id', flat=True))
+                        booked_rooms = len([rid for rid in booked_room_ids if rid is not None])
                 else:
-                    booked_rooms = active_reservations.filter(table_areas__isnull=False).distinct().count()
+                    booked_room_ids = set(active_reservations.values_list('table_areas__id', flat=True))
+                    booked_rooms = len([rid for rid in booked_room_ids if rid is not None])
 
-                # 大堂桌子统计
+                # 大堂桌子统计 - 统计实际被占用的桌号数量（非预订记录数）
                 total_hall = store.hall_tables_count
                 if time_str:
                     try:
                         target_time = datetime.strptime(time_str, '%H:%M:%S').time()
                         conflicting = get_time_window_conflicts(store, target_date, target_time)
-                        booked_hall = conflicting.exclude(table_numbers='').count()
                     except (ValueError, TypeError):
-                        booked_hall = active_reservations.exclude(table_numbers='').count()
+                        conflicting = active_reservations
                 else:
-                    booked_hall = active_reservations.exclude(table_numbers='').count()
+                    conflicting = active_reservations
+
+                # 从所有冲突预订中收集被占用的桌号
+                booked_hall_numbers = set()
+                for r in conflicting:
+                    booked_hall_numbers.update(r.get_table_number_list())
+                booked_hall = len(booked_hall_numbers)
 
                 store_stats.append({
                     'store_id': store.id,
