@@ -1,16 +1,19 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>新建就餐记录</h2>
+      <h2>{{ isEdit ? '编辑就餐记录' : '新建就餐记录' }}</h2>
       <el-button @click="$router.back()">返回</el-button>
     </div>
     <el-card>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" class="dining-form" style="max-width: 600px;">
-        <el-form-item label="客户" prop="customer">
+        <el-form-item label="客户">
           <el-select v-model="form.customer" filterable remote :remote-method="searchCustomers"
-            placeholder="搜索客户姓名或手机号" style="width: 100%;">
+            placeholder="搜索客户姓名或手机号（可留空表示散客）" clearable style="width: 100%;">
             <el-option v-for="c in customerOptions" :key="c.id" :label="`${c.name} (${c.phone})`" :value="c.id" />
           </el-select>
+          <div v-if="isEdit && originalCustomerName" style="font-size: 12px; color: #909399; margin-top: 4px;">
+            原客户：{{ originalCustomerName }}
+          </div>
         </el-form-item>
         <el-form-item label="门店" prop="store">
           <el-select v-model="form.store" placeholder="选择门店" style="width: 100%;">
@@ -46,17 +49,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createDiningRecord } from '../api/dining'
+import { createDiningRecord, updateDiningRecord } from '../api/dining'
 import { getCustomers, getStores } from '../api/customer'
+import request from '../api/request'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref(null)
 const saving = ref(false)
 const stores = ref([])
 const customerOptions = ref([])
+const isEdit = computed(() => !!route.params.id)
+const editId = computed(() => route.params.id)
+const originalCustomerName = ref('')
 
 const form = reactive({
   customer: null, store: null, dining_date: '', party_size: 1,
@@ -64,7 +72,6 @@ const form = reactive({
 })
 
 const rules = {
-  customer: [{ required: true, message: '请选择客户', trigger: 'change' }],
   store: [{ required: true, message: '请选择门店', trigger: 'change' }],
   dining_date: [{ required: true, message: '请选择就餐时间', trigger: 'change' }],
 }
@@ -80,14 +87,43 @@ async function handleSubmit() {
   if (!valid) return
   saving.value = true
   try {
-    await createDiningRecord(form)
-    ElMessage.success('保存成功')
+    const data = { ...form }
+    if (!data.customer) data.customer = null
+    if (isEdit.value) {
+      await updateDiningRecord(editId.value, data)
+      ElMessage.success('更新成功')
+    } else {
+      await createDiningRecord(data)
+      ElMessage.success('保存成功')
+    }
     router.push('/dining')
+  } catch (e) {
+    ElMessage.error('保存失败')
   } finally { saving.value = false }
 }
 
-onMounted(() => { getStores().then(d => { stores.value = d.results || d }) })
-</script>
+onMounted(async () => {
+  getStores().then(d => { stores.value = d.results || d })
 
-<style scoped>
-</style>
+  if (isEdit.value) {
+    try {
+      const detail = await request.get(`/dining/records/${editId.value}/`)
+      form.customer = detail.customer || null
+      form.store = detail.store
+      form.dining_date = detail.dining_date
+      form.party_size = detail.party_size || 1
+      form.table_number = detail.table_number || ''
+      form.total_amount = detail.total_amount || 0
+      form.satisfaction = detail.satisfaction
+      form.notes = detail.notes || ''
+      originalCustomerName.value = detail.customer_name || '散客'
+      // 如果有客户，加载到选项中
+      if (detail.customer) {
+        customerOptions.value = [{ id: detail.customer, name: detail.customer_name, phone: detail.customer_phone || '' }]
+      }
+    } catch (e) {
+      ElMessage.error('加载记录失败')
+    }
+  }
+})
+</script>

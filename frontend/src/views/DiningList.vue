@@ -34,7 +34,7 @@
       <el-table-column prop="notes" label="备注" show-overflow-tooltip />
       <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="openEditDialog(row)">编辑</el-button>
+          <el-button link type="primary" size="small" @click="$router.push(`/dining/${row.id}/edit`)">编辑</el-button>
           <el-button link type="primary" size="small" @click="$router.push(`/customers/${row.customer}`)">查看客户</el-button>
           <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
             <template #reference>
@@ -77,7 +77,7 @@
           </div>
         </div>
         <div class="card-actions">
-          <el-button type="primary" size="small" @click="openEditDialog(row)">编辑</el-button>
+          <el-button type="primary" size="small" @click="$router.push(`/dining/${row.id}/edit`)">编辑</el-button>
           <el-button type="primary" size="small" plain @click="$router.push(`/customers/${row.customer}`)">查看客户</el-button>
           <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
             <template #reference>

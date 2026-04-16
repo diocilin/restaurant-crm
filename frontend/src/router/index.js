@@ -76,6 +76,12 @@ const routes = [
         meta: { title: '新建就餐记录' }
       },
       {
+        path: 'dining/:id/edit',
+        name: 'DiningEdit',
+        component: () => import('../views/DiningForm.vue'),
+        meta: { title: '编辑就餐记录' }
+      },
+      {
         path: 'reservations',
         name: 'ReservationList',
         component: () => import('../views/ReservationList.vue'),
